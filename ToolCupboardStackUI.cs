@@ -8,12 +8,13 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackUI", "CursorAssistant", "1.0.0")]
+    [Info("CupboardStackUI", "CursorAssistant", "1.0.1")]
     [Description("Allows editing stack sizes inside Tool Cupboard via UI with sizes 5000/2000/3000/4000.")]
     public class CupboardStackUI : RustPlugin
     {
         private const string UiRootButton = "TCStackUI.Button";
         private const string UiRootPanel = "TCStackUI.Panel";
+        private const string PermissionAdmin = "cupboardstackui.admin";
 
         private readonly Dictionary<ulong, BuildingPrivlidge> playerIdToPrivlidge = new Dictionary<ulong, BuildingPrivlidge>();
 
@@ -21,12 +22,32 @@ namespace Oxide.Plugins
 
         private void OnServerInitialized()
         {
+            permission.RegisterPermission(PermissionAdmin, this);
+            permission.GrantGroupPermission("admin", PermissionAdmin, this);
+        }
+
+        private bool HasAccess(BasePlayer player)
+        {
+            if (player == null)
+            {
+                return false;
+            }
+            if ((player.net?.connection?.authLevel ?? 0) >= 2 || player.IsAdmin)
+            {
+                return true;
+            }
+            return permission.UserHasPermission(player.UserIDString, PermissionAdmin);
         }
 
         private void OnLootEntity(BasePlayer player, BaseEntity entity)
         {
             var priv = entity as BuildingPrivlidge;
             if (player == null || priv == null)
+            {
+                return;
+            }
+
+            if (!HasAccess(player))
             {
                 return;
             }
@@ -82,6 +103,12 @@ namespace Oxide.Plugins
                 return;
             }
 
+            if (!HasAccess(player))
+            {
+                player.ChatMessage("Недостаточно прав.");
+                return;
+            }
+
             if (!playerIdToPrivlidge.ContainsKey(player.userID) || player.inventory.loot.entitySource == null)
             {
                 return;
@@ -96,6 +123,12 @@ namespace Oxide.Plugins
             var player = arg?.Player();
             if (player == null)
             {
+                return;
+            }
+
+            if (!HasAccess(player))
+            {
+                player.ChatMessage("Недостаточно прав.");
                 return;
             }
 
@@ -353,7 +386,6 @@ namespace Oxide.Plugins
                 var itemId = pair.Key;
                 var totalAmount = pair.Value;
                 var skinId = skinsByItemId[itemId];
-
                 var itemDef = ItemManager.FindItemDefinition(itemId);
                 if (itemDef == null)
                 {
