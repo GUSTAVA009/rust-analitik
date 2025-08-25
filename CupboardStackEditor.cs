@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackEditor", "StackEditor", "2.0.3")]
+    [Info("CupboardStackEditor", "StackEditor", "2.1.0")]
     [Description("Plugin for editing stack amounts in cupboards through cupboard.tool interface")]
     public class CupboardStackEditor : RustPlugin
     {
@@ -55,6 +55,7 @@ namespace Oxide.Plugins
 
         #region Fields
         private readonly Dictionary<ItemId, int> modifiedItems = new Dictionary<ItemId, int>();
+        private readonly Dictionary<ulong, BuildingPrivlidge> playerCupboards = new Dictionary<ulong, BuildingPrivlidge>();
         #endregion
 
         #region Hooks
@@ -109,6 +110,9 @@ namespace Oxide.Plugins
             if (config.RequirePermission && !player.IsAdmin && !permission.UserHasPermission(player.UserIDString, config.Permission))
                 return;
 
+            // Сохраняем ссылку на шкаф для игрока
+            playerCupboards[player.userID] = cupboard;
+            
             // Добавляем кнопку Stack в интерфейс шкафа
             timer.Once(0.2f, () => AddStackButton(player, cupboard));
         }
@@ -124,6 +128,10 @@ namespace Oxide.Plugins
             // Закрываем наш UI если он открыт
             CuiHelper.DestroyUi(player, "CupboardStackEditor");
             CuiHelper.DestroyUi(player, "CupboardStackButton");
+            
+            // Очищаем ссылку на шкаф
+            if (playerCupboards.ContainsKey(player.userID))
+                playerCupboards.Remove(player.userID);
         }
 
         // Хук для удаления предметов - очищаем данные
@@ -147,6 +155,13 @@ namespace Oxide.Plugins
                 });
             }
         }
+
+        // Хук для очистки данных при отключении игрока
+        void OnPlayerDisconnected(BasePlayer player, string reason)
+        {
+            if (playerCupboards.ContainsKey(player.userID))
+                playerCupboards.Remove(player.userID);
+        }
         #endregion
 
         #region UI
@@ -169,7 +184,7 @@ namespace Oxide.Plugins
             elements.Add(new CuiButton
             {
                 Button = { 
-                    Command = $"cupboard.stackeditor {cupboard.net.ID}",
+                    Command = "cupboard.stackeditor",
                     Color = "0 0 0 0"
                 },
                 RectTransform = { AnchorMin = "0 0", AnchorMax = "1 1" },
@@ -256,7 +271,7 @@ namespace Oxide.Plugins
                     elements.Add(new CuiButton
                     {
                         Button = { 
-                            Command = $"cupboard.setstack {cupboard.net.ID} {itemIndex} {stackSize}",
+                            Command = $"cupboard.setstack {itemIndex} {stackSize}",
                             Color = buttonColor
                         },
                         RectTransform = { AnchorMin = $"{buttonX} {itemY - 0.04}", AnchorMax = $"{buttonX + 0.08} {itemY + 0.01}" },
@@ -308,12 +323,20 @@ namespace Oxide.Plugins
                 return;
             }
 
-            if (!ulong.TryParse(arg.Args[0], out ulong cupboardId))
+            // Получаем шкаф из сохраненных ссылок
+            if (!playerCupboards.ContainsKey(player.userID))
+            {
+                SendReply(player, "Ошибка: шкаф не найден. Попробуйте закрыть и снова открыть шкаф.");
                 return;
+            }
 
-            var cupboard = BaseNetworkable.serverEntities.Find(cupboardId) as BuildingPrivlidge;
-            if (cupboard == null)
+            var cupboard = playerCupboards[player.userID];
+            if (cupboard == null || cupboard.IsDestroyed)
+            {
+                playerCupboards.Remove(player.userID);
+                SendReply(player, "Ошибка: шкаф недоступен.");
                 return;
+            }
 
             // Проверяем, что игрок имеет доступ к шкафу
             if (!cupboard.IsAuthed(player))
@@ -334,15 +357,18 @@ namespace Oxide.Plugins
             if (config.RequirePermission && !player.IsAdmin && !permission.UserHasPermission(player.UserIDString, config.Permission))
                 return;
 
-            if (arg.Args.Length < 3) return;
+            if (arg.Args.Length < 2) return;
 
-            if (!ulong.TryParse(arg.Args[0], out ulong cupboardId) ||
-                !int.TryParse(arg.Args[1], out int itemIndex) ||
-                !int.TryParse(arg.Args[2], out int newAmount))
+            if (!int.TryParse(arg.Args[0], out int itemIndex) ||
+                !int.TryParse(arg.Args[1], out int newAmount))
                 return;
 
-            var cupboard = BaseNetworkable.serverEntities.Find(cupboardId) as BuildingPrivlidge;
-            if (cupboard == null || !cupboard.IsAuthed(player))
+            // Получаем шкаф из сохраненных ссылок
+            if (!playerCupboards.ContainsKey(player.userID))
+                return;
+
+            var cupboard = playerCupboards[player.userID];
+            if (cupboard == null || cupboard.IsDestroyed || !cupboard.IsAuthed(player))
                 return;
 
             var items = cupboard.inventory.itemList;
@@ -569,8 +595,9 @@ namespace Oxide.Plugins
                 CuiHelper.DestroyUi(player, "CupboardStackButton");
             }
             
-            // Очищаем данные о модифицированных предметах
+            // Очищаем данные о модифицированных предметах и ссылки на шкафы
             modifiedItems.Clear();
+            playerCupboards.Clear();
         }
         #endregion
     }
