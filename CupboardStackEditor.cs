@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackEditor", "StackEditor", "2.0.1")]
+    [Info("CupboardStackEditor", "StackEditor", "2.0.2")]
     [Description("Plugin for editing stack amounts in cupboards through cupboard.tool interface")]
     public class CupboardStackEditor : RustPlugin
     {
@@ -35,7 +35,7 @@ namespace Oxide.Plugins
                 config = Config.ReadObject<Configuration>();
                 if (config == null)
                 {
-                    throw new JsonException();
+                    throw new Exception("Config is null");
                 }
 
                 if (config.AvailableStackSizes == null || config.AvailableStackSizes.Count == 0)
@@ -43,8 +43,9 @@ namespace Oxide.Plugins
                     config.AvailableStackSizes = new List<int> { 5000, 2000, 3000, 4000 };
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                PrintWarning($"Failed to load config: {ex.Message}");
                 LoadDefaultConfig();
             }
         }
