@@ -1,67 +1,66 @@
-# Rust Template Generator
+# Cupboard Stack Editor
 
-Utility for generating Rust game plugin templates with hooks extraction.
+Плагин для Rust сервера, который позволяет редактировать количество стаков в шкафах через удобный интерфейс.
 
-## Step 1: Generate Template
+## Особенности
 
-```bash
-# Clone and build
-git clone https://github.com/publicrust/rust-template-generator
-cd rust-template-generator
-dotnet build
+- Интерфейс редактирования стаков прямо в игре
+- Кнопка "Stack" в интерфейсе шкафа для быстрого доступа
+- Предустановленные значения стаков: 5000, 2000, 3000, 4000
+- Система прав доступа
+- Поддержка русского и английского языков
+- Проверка авторизации в шкафу
 
-# Generate template
-dotnet run --project RustTemplateGenerator/RustTemplateGenerator.csproj --input /path/to/RustDedicated_Data/Managed --output ./my-plugin
-```
+## Установка
 
-## Step 2: Generate StringPool
+1. Скопируйте файл `CupboardStackEditor.cs` в папку `oxide/plugins/`
+2. Перезагрузите плагин командой `o.reload CupboardStackEditor`
 
-1. Create `StringPoolDumper.cs` in `oxide/plugins`:
+## Использование
 
-```csharp
-using Oxide.Core;
+1. Откройте любой шкаф (Tool Cupboard)
+2. В интерфейсе шкафа появится кнопка "STACK"
+3. Нажмите на кнопку "STACK" для открытия редактора
+4. Выберите предмет и нажмите на одно из значений (5000, 2000, 3000, 4000) для изменения количества
 
-namespace Oxide.Plugins
+## Конфигурация
+
+```json
 {
-    [Info("StringPool Dumper", "RustGPT", "1.0.0")]
-    [Description("Dumps StringPool.toNumber dictionary to a JSON file")]
-    public class StringPoolDumper : RustPlugin
-    {
-        private const string FileName = "stringpool_dump.json";
-
-        private void OnServerInitialized(bool initial)
-        {
-            DumpStringPool();
-        }
-
-        private void DumpStringPool()
-        {
-            _ = StringPool.Get("");
-            Interface.Oxide.DataFileSystem.WriteObject(FileName, StringPool.toNumber);
-            Puts($"StringPool dumped to {FileName} in oxide/data directory");
-        }
-    }
+  "AvailableStackSizes": [5000, 2000, 3000, 4000],
+  "Permission": "cupboardstackeditor.use",
+  "RequirePermission": false
 }
 ```
 
-2. Start server and wait for initialization
-3. Copy generated file:
-```bash
-cp oxide/data/stringpool_dump.json <output-path>/.rust-analyzer/stringPool.json
-```
+### Параметры:
+- `AvailableStackSizes` - Доступные размеры стаков для выбора
+- `Permission` - Право доступа для использования плагина
+- `RequirePermission` - Требовать ли права для использования (по умолчанию false)
 
-## Output Structure
+## Права доступа
 
-```
-output/
-├── .rust-analyzer/
-│   ├── hooks.json         # Extracted hooks
-│   ├── deprecatedHooks.json
-│   └── stringPool.json    # From server
-├── Managed/              # DLL files
-└── ... template files
-```
+- `cupboardstackeditor.use` - Позволяет использовать редактор стаков
 
-## License
+Выдать права: `o.grant user <steamid> cupboardstackeditor.use`
+Выдать права группе: `o.grant group <groupname> cupboardstackeditor.use`
 
-MIT License
+## Команды
+
+### Консольные команды (автоматические):
+- `cupboard.stackeditor <cupboard_id>` - Открыть редактор стаков
+- `cupboard.setstack <cupboard_id> <item_id> <amount>` - Изменить количество стака
+- `cupboard.closeeditor` - Закрыть редактор
+
+## Требования
+
+- Oxide/uMod
+- Rust сервер
+
+## Поддержка
+
+Плагин протестирован и работает с последними версиями Rust и Oxide.
+
+## Версия
+
+1.0.0 - Первый релиз

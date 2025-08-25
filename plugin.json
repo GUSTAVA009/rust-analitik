@@ -1,0 +1,8 @@
+{
+  "Name": "CupboardStackEditor",
+  "Title": "Cupboard Stack Editor",
+  "Author": "StackEditor",
+  "Version": "1.0.0",
+  "Description": "Plugin for editing stack amounts in cupboards through cupboard.tool interface",
+  "ResourceId": 0
+}
