@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackEditor", "StackEditor", "2.0.0")]
+    [Info("CupboardStackEditor", "StackEditor", "2.0.1")]
     [Description("Plugin for editing stack amounts in cupboards through cupboard.tool interface")]
     public class CupboardStackEditor : RustPlugin
     {
@@ -59,13 +59,24 @@ namespace Oxide.Plugins
         #region Hooks
         void Init()
         {
-            permission.RegisterPermission(config.Permission, this);
             LoadDefaultMessages();
         }
 
         void OnServerInitialized()
         {
-            // Инициализация завершена
+            // Регистрируем права после загрузки конфигурации
+            permission.RegisterPermission(config.Permission, this);
+            
+            // Автоматически предоставляем права всем администраторам
+            foreach (var player in BasePlayer.activePlayerList)
+            {
+                if (player.IsAdmin)
+                {
+                    permission.GrantUserPermission(player.UserIDString, config.Permission, this);
+                }
+            }
+            
+            Puts($"CupboardStackEditor загружен. Право доступа: {config.Permission}");
         }
 
         // Главный хук для изменения максимального размера стака
@@ -93,8 +104,8 @@ namespace Oxide.Plugins
             var cupboard = container.GetComponent<BuildingPrivlidge>();
             if (cupboard == null) return;
 
-            // Проверяем права доступа
-            if (config.RequirePermission && !permission.UserHasPermission(player.UserIDString, config.Permission))
+            // Проверяем права доступа (администраторы всегда имеют доступ)
+            if (config.RequirePermission && !player.IsAdmin && !permission.UserHasPermission(player.UserIDString, config.Permission))
                 return;
 
             // Добавляем кнопку Stack в интерфейс шкафа
@@ -120,6 +131,19 @@ namespace Oxide.Plugins
             if (container?.entityOwner is BuildingPrivlidge && modifiedItems.ContainsKey(item.uid))
             {
                 modifiedItems.Remove(item.uid);
+            }
+        }
+
+        // Хук для автоматического предоставления прав новым администраторам
+        void OnPlayerConnected(BasePlayer player)
+        {
+            if (player.IsAdmin)
+            {
+                timer.Once(1f, () => 
+                {
+                    permission.GrantUserPermission(player.UserIDString, config.Permission, this);
+                    Puts($"Права {config.Permission} автоматически предоставлены администратору {player.displayName}");
+                });
             }
         }
         #endregion
@@ -277,7 +301,7 @@ namespace Oxide.Plugins
             var player = arg.Player();
             if (player == null) return;
 
-            if (config.RequirePermission && !permission.UserHasPermission(player.UserIDString, config.Permission))
+            if (config.RequirePermission && !player.IsAdmin && !permission.UserHasPermission(player.UserIDString, config.Permission))
             {
                 SendReply(player, GetMessage("NoPermission", player.UserIDString));
                 return;
@@ -306,7 +330,7 @@ namespace Oxide.Plugins
             var player = arg.Player();
             if (player == null) return;
 
-            if (config.RequirePermission && !permission.UserHasPermission(player.UserIDString, config.Permission))
+            if (config.RequirePermission && !player.IsAdmin && !permission.UserHasPermission(player.UserIDString, config.Permission))
                 return;
 
             if (arg.Args.Length < 3) return;
@@ -350,6 +374,147 @@ namespace Oxide.Plugins
             if (player == null) return;
 
             CuiHelper.DestroyUi(player, "CupboardStackEditor");
+        }
+
+        [ChatCommand("cupboard")]
+        private void CmdCupboard(BasePlayer player, string command, string[] args)
+        {
+            if (!player.IsAdmin)
+            {
+                SendReply(player, GetMessage("NoPermission", player.UserIDString));
+                return;
+            }
+
+            if (args.Length == 0)
+            {
+                SendReply(player, "Доступные команды:");
+                SendReply(player, "/cupboard grant <steamid/name> - Выдать права игроку");
+                SendReply(player, "/cupboard revoke <steamid/name> - Отозвать права у игрока");
+                SendReply(player, "/cupboard check <steamid/name> - Проверить права игрока");
+                return;
+            }
+
+            switch (args[0].ToLower())
+            {
+                case "grant":
+                    if (args.Length < 2)
+                    {
+                        SendReply(player, "Использование: /cupboard grant <steamid/name>");
+                        return;
+                    }
+                    GrantPermissionCommand(player, args[1]);
+                    break;
+
+                case "revoke":
+                    if (args.Length < 2)
+                    {
+                        SendReply(player, "Использование: /cupboard revoke <steamid/name>");
+                        return;
+                    }
+                    RevokePermissionCommand(player, args[1]);
+                    break;
+
+                case "check":
+                    if (args.Length < 2)
+                    {
+                        SendReply(player, "Использование: /cupboard check <steamid/name>");
+                        return;
+                    }
+                    CheckPermissionCommand(player, args[1]);
+                    break;
+
+                default:
+                    SendReply(player, "Неизвестная команда. Используйте /cupboard для справки.");
+                    break;
+            }
+        }
+
+        private void GrantPermissionCommand(BasePlayer admin, string target)
+        {
+            var targetPlayer = FindPlayer(target);
+            if (targetPlayer != null)
+            {
+                permission.GrantUserPermission(targetPlayer.UserIDString, config.Permission, this);
+                SendReply(admin, $"Права {config.Permission} выданы игроку {targetPlayer.displayName}");
+                SendReply(targetPlayer, "Вам выданы права для использования редактора стаков шкафа!");
+            }
+            else
+            {
+                // Попробуем найти по SteamID
+                if (target.Length == 17 && ulong.TryParse(target, out ulong steamId))
+                {
+                    permission.GrantUserPermission(target, config.Permission, this);
+                    SendReply(admin, $"Права {config.Permission} выданы игроку с SteamID {target}");
+                }
+                else
+                {
+                    SendReply(admin, "Игрок не найден. Используйте точное имя или SteamID.");
+                }
+            }
+        }
+
+        private void RevokePermissionCommand(BasePlayer admin, string target)
+        {
+            var targetPlayer = FindPlayer(target);
+            if (targetPlayer != null)
+            {
+                permission.RevokeUserPermission(targetPlayer.UserIDString, config.Permission);
+                SendReply(admin, $"Права {config.Permission} отозваны у игрока {targetPlayer.displayName}");
+                SendReply(targetPlayer, "У вас отозваны права для использования редактора стаков шкафа.");
+            }
+            else
+            {
+                if (target.Length == 17 && ulong.TryParse(target, out ulong steamId))
+                {
+                    permission.RevokeUserPermission(target, config.Permission);
+                    SendReply(admin, $"Права {config.Permission} отозваны у игрока с SteamID {target}");
+                }
+                else
+                {
+                    SendReply(admin, "Игрок не найден. Используйте точное имя или SteamID.");
+                }
+            }
+        }
+
+        private void CheckPermissionCommand(BasePlayer admin, string target)
+        {
+            var targetPlayer = FindPlayer(target);
+            if (targetPlayer != null)
+            {
+                bool hasPermission = permission.UserHasPermission(targetPlayer.UserIDString, config.Permission);
+                string status = hasPermission ? "ЕСТЬ" : "НЕТ";
+                SendReply(admin, $"Игрок {targetPlayer.displayName}: права {config.Permission} - {status}");
+                if (targetPlayer.IsAdmin)
+                {
+                    SendReply(admin, "Примечание: Игрок является администратором и имеет доступ независимо от прав.");
+                }
+            }
+            else
+            {
+                if (target.Length == 17 && ulong.TryParse(target, out ulong steamId))
+                {
+                    bool hasPermission = permission.UserHasPermission(target, config.Permission);
+                    string status = hasPermission ? "ЕСТЬ" : "НЕТ";
+                    SendReply(admin, $"SteamID {target}: права {config.Permission} - {status}");
+                }
+                else
+                {
+                    SendReply(admin, "Игрок не найден. Используйте точное имя или SteamID.");
+                }
+            }
+        }
+
+        private BasePlayer FindPlayer(string nameOrId)
+        {
+            foreach (var player in BasePlayer.activePlayerList)
+            {
+                if (player.displayName.ToLower().Contains(nameOrId.ToLower()) || 
+                    player.UserIDString == nameOrId)
+                {
+                    return player;
+                }
+            }
+            return null;
         }
         #endregion
 
