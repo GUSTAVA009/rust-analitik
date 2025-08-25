@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackEditor", "StackEditor", "2.0.2")]
+    [Info("CupboardStackEditor", "StackEditor", "2.0.3")]
     [Description("Plugin for editing stack amounts in cupboards through cupboard.tool interface")]
     public class CupboardStackEditor : RustPlugin
     {
@@ -54,7 +54,7 @@ namespace Oxide.Plugins
         #endregion
 
         #region Fields
-        private readonly Dictionary<uint, int> modifiedItems = new Dictionary<uint, int>();
+        private readonly Dictionary<ItemId, int> modifiedItems = new Dictionary<ItemId, int>();
         #endregion
 
         #region Hooks
@@ -256,7 +256,7 @@ namespace Oxide.Plugins
                     elements.Add(new CuiButton
                     {
                         Button = { 
-                            Command = $"cupboard.setstack {cupboard.net.ID} {item.uid} {stackSize}",
+                            Command = $"cupboard.setstack {cupboard.net.ID} {itemIndex} {stackSize}",
                             Color = buttonColor
                         },
                         RectTransform = { AnchorMin = $"{buttonX} {itemY - 0.04}", AnchorMax = $"{buttonX + 0.08} {itemY + 0.01}" },
@@ -337,7 +337,7 @@ namespace Oxide.Plugins
             if (arg.Args.Length < 3) return;
 
             if (!ulong.TryParse(arg.Args[0], out ulong cupboardId) ||
-                !uint.TryParse(arg.Args[1], out uint itemId) ||
+                !int.TryParse(arg.Args[1], out int itemIndex) ||
                 !int.TryParse(arg.Args[2], out int newAmount))
                 return;
 
@@ -345,7 +345,11 @@ namespace Oxide.Plugins
             if (cupboard == null || !cupboard.IsAuthed(player))
                 return;
 
-            var item = cupboard.inventory.FindItemUID(itemId);
+            var items = cupboard.inventory.itemList;
+            if (itemIndex < 0 || itemIndex >= items.Count)
+                return;
+
+            var item = items[itemIndex];
             if (item == null) return;
 
             // Проверяем, что новое количество входит в разрешенные значения
