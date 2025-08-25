@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackEditor", "StackEditor", "1.0.0")]
+    [Info("CupboardStackEditor", "StackEditor", "2.0.0")]
     [Description("Plugin for editing stack amounts in cupboards through cupboard.tool interface")]
     public class CupboardStackEditor : RustPlugin
     {
@@ -52,6 +52,10 @@ namespace Oxide.Plugins
         protected override void SaveConfig() => Config.WriteObject(config);
         #endregion
 
+        #region Fields
+        private readonly Dictionary<uint, int> modifiedItems = new Dictionary<uint, int>();
+        #endregion
+
         #region Hooks
         void Init()
         {
@@ -61,7 +65,23 @@ namespace Oxide.Plugins
 
         void OnServerInitialized()
         {
-            // Регистрируем команды
+            // Инициализация завершена
+        }
+
+        // Главный хук для изменения максимального размера стака
+        object OnMaxStackable(Item item)
+        {
+            if (item?.parent?.entityOwner is BuildingPrivlidge)
+            {
+                // Если у предмета есть пользовательский размер стака
+                if (modifiedItems.ContainsKey(item.uid))
+                {
+                    return modifiedItems[item.uid];
+                }
+                // Иначе возвращаем максимальный из доступных размеров
+                return config.AvailableStackSizes.Max();
+            }
+            return null;
         }
 
         // Хук для обработки открытия шкафа
@@ -78,7 +98,7 @@ namespace Oxide.Plugins
                 return;
 
             // Добавляем кнопку Stack в интерфейс шкафа
-            timer.Once(0.1f, () => AddStackButton(player, cupboard));
+            timer.Once(0.2f, () => AddStackButton(player, cupboard));
         }
 
         // Хук для закрытия интерфейса
@@ -91,33 +111,46 @@ namespace Oxide.Plugins
 
             // Закрываем наш UI если он открыт
             CuiHelper.DestroyUi(player, "CupboardStackEditor");
+            CuiHelper.DestroyUi(player, "CupboardStackButton");
+        }
+
+        // Хук для удаления предметов - очищаем данные
+        void OnItemRemovedFromContainer(ItemContainer container, Item item)
+        {
+            if (container?.entityOwner is BuildingPrivlidge && modifiedItems.ContainsKey(item.uid))
+            {
+                modifiedItems.Remove(item.uid);
+            }
         }
         #endregion
 
         #region UI
         private void AddStackButton(BasePlayer player, BuildingPrivlidge cupboard)
         {
+            // Сначала убираем старую кнопку
+            CuiHelper.DestroyUi(player, "CupboardStackButton");
+
             var elements = new CuiElementContainer();
 
-            // Основная панель для кнопки Stack
+            // Основная панель для кнопки Stack - размещаем в правом верхнем углу
             elements.Add(new CuiPanel
             {
-                Image = { Color = "0.1 0.1 0.1 0.8" },
-                RectTransform = { AnchorMin = "0.02 0.85", AnchorMax = "0.15 0.92" },
+                Image = { Color = "0.2 0.6 0.2 0.9" },
+                RectTransform = { AnchorMin = "0.82 0.88", AnchorMax = "0.98 0.95" },
                 CursorEnabled = true
-            }, "Overlay", "CupboardStackButton");
+            }, "Hud", "CupboardStackButton");
 
             // Кнопка Stack
             elements.Add(new CuiButton
             {
                 Button = { 
                     Command = $"cupboard.stackeditor {cupboard.net.ID}",
-                    Color = "0.2 0.6 0.2 0.8"
+                    Color = "0 0 0 0"
                 },
                 RectTransform = { AnchorMin = "0 0", AnchorMax = "1 1" },
                 Text = { 
                     Text = GetMessage("Stack", player.UserIDString),
-                    FontSize = 12,
+                    FontSize = 14,
                     Align = TextAnchor.MiddleCenter,
                     Color = "1 1 1 1"
                 }
@@ -136,8 +169,8 @@ namespace Oxide.Plugins
             // Основная панель
             elements.Add(new CuiPanel
             {
-                Image = { Color = "0.1 0.1 0.1 0.9" },
-                RectTransform = { AnchorMin = "0.3 0.3", AnchorMax = "0.7 0.7" },
+                Image = { Color = "0.1 0.1 0.1 0.95" },
+                RectTransform = { AnchorMin = "0.25 0.25", AnchorMax = "0.75 0.75" },
                 CursorEnabled = true
             }, "Overlay", "CupboardStackEditor");
 
@@ -146,69 +179,75 @@ namespace Oxide.Plugins
             {
                 Text = { 
                     Text = GetMessage("CupboardStackEditor", player.UserIDString),
-                    FontSize = 16,
+                    FontSize = 18,
                     Align = TextAnchor.MiddleCenter,
                     Color = "1 1 1 1"
                 },
-                RectTransform = { AnchorMin = "0 0.85", AnchorMax = "1 1" }
+                RectTransform = { AnchorMin = "0 0.88", AnchorMax = "1 0.98" }
             }, "CupboardStackEditor");
 
             // Текущие стаки в шкафу
-            var items = cupboard.inventory.itemList;
-            float yPos = 0.75f;
+            var items = cupboard.inventory.itemList.ToList();
+            float yPos = 0.82f;
 
             elements.Add(new CuiLabel
             {
                 Text = { 
                     Text = GetMessage("CurrentItems", player.UserIDString),
-                    FontSize = 14,
+                    FontSize = 16,
                     Align = TextAnchor.MiddleLeft,
                     Color = "0.8 0.8 0.8 1"
                 },
-                RectTransform = { AnchorMin = "0.05 0.7", AnchorMax = "0.95 0.75" }
+                RectTransform = { AnchorMin = "0.05 0.78", AnchorMax = "0.95 0.85" }
             }, "CupboardStackEditor");
 
             int itemIndex = 0;
             foreach (var item in items.Take(8)) // Ограничиваем количество отображаемых предметов
             {
-                float itemY = yPos - (itemIndex * 0.08f);
+                float itemY = yPos - (itemIndex * 0.09f);
                 
                 // Название предмета и текущее количество
                 elements.Add(new CuiLabel
                 {
                     Text = { 
                         Text = $"{item.info.displayName.english}: {item.amount}",
-                        FontSize = 12,
+                        FontSize = 14,
                         Align = TextAnchor.MiddleLeft,
                         Color = "1 1 1 1"
                     },
-                    RectTransform = { AnchorMin = $"0.05 {itemY - 0.04}", AnchorMax = $"0.6 {itemY}" }
+                    RectTransform = { AnchorMin = $"0.05 {itemY - 0.04}", AnchorMax = $"0.55 {itemY + 0.01}" }
                 }, "CupboardStackEditor");
 
                 // Кнопки для изменения количества
-                float buttonX = 0.62f;
+                float buttonX = 0.58f;
                 foreach (var stackSize in config.AvailableStackSizes)
                 {
+                    var buttonColor = "0.2 0.4 0.6 0.8";
+                    if (item.amount == stackSize)
+                    {
+                        buttonColor = "0.2 0.6 0.2 0.8"; // Зеленый для текущего значения
+                    }
+
                     elements.Add(new CuiButton
                     {
                         Button = { 
                             Command = $"cupboard.setstack {cupboard.net.ID} {item.uid} {stackSize}",
-                            Color = "0.2 0.4 0.6 0.8"
+                            Color = buttonColor
                         },
-                        RectTransform = { AnchorMin = $"{buttonX} {itemY - 0.04}", AnchorMax = $"{buttonX + 0.06} {itemY}" },
+                        RectTransform = { AnchorMin = $"{buttonX} {itemY - 0.04}", AnchorMax = $"{buttonX + 0.08} {itemY + 0.01}" },
                         Text = { 
                             Text = stackSize.ToString(),
-                            FontSize = 10,
+                            FontSize = 12,
                             Align = TextAnchor.MiddleCenter,
                             Color = "1 1 1 1"
                         }
                     }, "CupboardStackEditor");
                     
-                    buttonX += 0.07f;
+                    buttonX += 0.09f;
                 }
 
                 itemIndex++;
-                if (itemIndex >= 6) break; // Ограничиваем количество отображаемых предметов
+                if (itemIndex >= 7) break; // Ограничиваем количество отображаемых предметов
             }
 
             // Кнопка закрытия
@@ -218,10 +257,10 @@ namespace Oxide.Plugins
                     Command = "cupboard.closeeditor",
                     Color = "0.6 0.2 0.2 0.8"
                 },
-                RectTransform = { AnchorMin = "0.4 0.05", AnchorMax = "0.6 0.15" },
+                RectTransform = { AnchorMin = "0.35 0.05", AnchorMax = "0.65 0.12" },
                 Text = { 
                     Text = GetMessage("Close", player.UserIDString),
-                    FontSize = 12,
+                    FontSize = 14,
                     Align = TextAnchor.MiddleCenter,
                     Color = "1 1 1 1"
                 }
@@ -288,9 +327,15 @@ namespace Oxide.Plugins
             if (!config.AvailableStackSizes.Contains(newAmount))
                 return;
 
-            // Изменяем количество
+            // Сохраняем информацию о модифицированном предмете
+            modifiedItems[item.uid] = Math.Max(newAmount, item.info.stackable);
+
+            // Изменяем количество предмета
             item.amount = newAmount;
             item.MarkDirty();
+            
+            // Обновляем инвентарь шкафа
+            cupboard.inventory.MarkDirty();
 
             // Обновляем UI
             ShowStackEditor(player, cupboard);
@@ -347,11 +392,15 @@ namespace Oxide.Plugins
         #region Cleanup
         void Unload()
         {
+            // Очищаем UI для всех игроков
             foreach (var player in BasePlayer.activePlayerList)
             {
                 CuiHelper.DestroyUi(player, "CupboardStackEditor");
                 CuiHelper.DestroyUi(player, "CupboardStackButton");
             }
+            
+            // Очищаем данные о модифицированных предметах
+            modifiedItems.Clear();
         }
         #endregion
     }
