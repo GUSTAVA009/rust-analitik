@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("CupboardStackEditor", "StackEditor", "2.1.0")]
+    [Info("CupboardStackEditor", "StackEditor", "2.1.1")]
     [Description("Plugin for editing stack amounts in cupboards through cupboard.tool interface")]
     public class CupboardStackEditor : RustPlugin
     {
@@ -35,7 +35,8 @@ namespace Oxide.Plugins
                 config = Config.ReadObject<Configuration>();
                 if (config == null)
                 {
-                    throw new Exception("Config is null");
+                    PrintWarning("Config is null, loading default");
+                    LoadDefaultConfig();
                 }
 
                 if (config.AvailableStackSizes == null || config.AvailableStackSizes.Count == 0)
@@ -54,7 +55,6 @@ namespace Oxide.Plugins
         #endregion
 
         #region Fields
-        private readonly Dictionary<ItemId, int> modifiedItems = new Dictionary<ItemId, int>();
         private readonly Dictionary<ulong, BuildingPrivlidge> playerCupboards = new Dictionary<ulong, BuildingPrivlidge>();
         #endregion
 
@@ -86,12 +86,6 @@ namespace Oxide.Plugins
         {
             if (item?.parent?.entityOwner is BuildingPrivlidge)
             {
-                // Если у предмета есть пользовательский размер стака
-                if (modifiedItems.ContainsKey(item.uid))
-                {
-                    return modifiedItems[item.uid];
-                }
-                // Иначе возвращаем максимальный из доступных размеров
                 return config.AvailableStackSizes.Max();
             }
             return null;
@@ -114,7 +108,7 @@ namespace Oxide.Plugins
             playerCupboards[player.userID] = cupboard;
             
             // Добавляем кнопку Stack в интерфейс шкафа
-            timer.Once(0.2f, () => AddStackButton(player, cupboard));
+            timer.Once(0.2f, () => AddStackButton(player));
         }
 
         // Хук для закрытия интерфейса
@@ -132,15 +126,6 @@ namespace Oxide.Plugins
             // Очищаем ссылку на шкаф
             if (playerCupboards.ContainsKey(player.userID))
                 playerCupboards.Remove(player.userID);
-        }
-
-        // Хук для удаления предметов - очищаем данные
-        void OnItemRemovedFromContainer(ItemContainer container, Item item)
-        {
-            if (container?.entityOwner is BuildingPrivlidge && modifiedItems.ContainsKey(item.uid))
-            {
-                modifiedItems.Remove(item.uid);
-            }
         }
 
         // Хук для автоматического предоставления прав новым администраторам
@@ -165,7 +150,7 @@ namespace Oxide.Plugins
         #endregion
 
         #region UI
-        private void AddStackButton(BasePlayer player, BuildingPrivlidge cupboard)
+        private void AddStackButton(BasePlayer player)
         {
             // Сначала убираем старую кнопку
             CuiHelper.DestroyUi(player, "CupboardStackButton");
@@ -382,9 +367,6 @@ namespace Oxide.Plugins
             if (!config.AvailableStackSizes.Contains(newAmount))
                 return;
 
-            // Сохраняем информацию о модифицированном предмете
-            modifiedItems[item.uid] = Math.Max(newAmount, item.info.stackable);
-
             // Изменяем количество предмета
             item.amount = newAmount;
             item.MarkDirty();
@@ -405,147 +387,6 @@ namespace Oxide.Plugins
             if (player == null) return;
 
             CuiHelper.DestroyUi(player, "CupboardStackEditor");
-        }
-
-        [ChatCommand("cupboard")]
-        private void CmdCupboard(BasePlayer player, string command, string[] args)
-        {
-            if (!player.IsAdmin)
-            {
-                SendReply(player, GetMessage("NoPermission", player.UserIDString));
-                return;
-            }
-
-            if (args.Length == 0)
-            {
-                SendReply(player, "Доступные команды:");
-                SendReply(player, "/cupboard grant <steamid/name> - Выдать права игроку");
-                SendReply(player, "/cupboard revoke <steamid/name> - Отозвать права у игрока");
-                SendReply(player, "/cupboard check <steamid/name> - Проверить права игрока");
-                return;
-            }
-
-            switch (args[0].ToLower())
-            {
-                case "grant":
-                    if (args.Length < 2)
-                    {
-                        SendReply(player, "Использование: /cupboard grant <steamid/name>");
-                        return;
-                    }
-                    GrantPermissionCommand(player, args[1]);
-                    break;
-
-                case "revoke":
-                    if (args.Length < 2)
-                    {
-                        SendReply(player, "Использование: /cupboard revoke <steamid/name>");
-                        return;
-                    }
-                    RevokePermissionCommand(player, args[1]);
-                    break;
-
-                case "check":
-                    if (args.Length < 2)
-                    {
-                        SendReply(player, "Использование: /cupboard check <steamid/name>");
-                        return;
-                    }
-                    CheckPermissionCommand(player, args[1]);
-                    break;
-
-                default:
-                    SendReply(player, "Неизвестная команда. Используйте /cupboard для справки.");
-                    break;
-            }
-        }
-
-        private void GrantPermissionCommand(BasePlayer admin, string target)
-        {
-            var targetPlayer = FindPlayer(target);
-            if (targetPlayer != null)
-            {
-                permission.GrantUserPermission(targetPlayer.UserIDString, config.Permission, this);
-                SendReply(admin, $"Права {config.Permission} выданы игроку {targetPlayer.displayName}");
-                SendReply(targetPlayer, "Вам выданы права для использования редактора стаков шкафа!");
-            }
-            else
-            {
-                // Попробуем найти по SteamID
-                if (target.Length == 17 && ulong.TryParse(target, out ulong steamId))
-                {
-                    permission.GrantUserPermission(target, config.Permission, this);
-                    SendReply(admin, $"Права {config.Permission} выданы игроку с SteamID {target}");
-                }
-                else
-                {
-                    SendReply(admin, "Игрок не найден. Используйте точное имя или SteamID.");
-                }
-            }
-        }
-
-        private void RevokePermissionCommand(BasePlayer admin, string target)
-        {
-            var targetPlayer = FindPlayer(target);
-            if (targetPlayer != null)
-            {
-                permission.RevokeUserPermission(targetPlayer.UserIDString, config.Permission);
-                SendReply(admin, $"Права {config.Permission} отозваны у игрока {targetPlayer.displayName}");
-                SendReply(targetPlayer, "У вас отозваны права для использования редактора стаков шкафа.");
-            }
-            else
-            {
-                if (target.Length == 17 && ulong.TryParse(target, out ulong steamId))
-                {
-                    permission.RevokeUserPermission(target, config.Permission);
-                    SendReply(admin, $"Права {config.Permission} отозваны у игрока с SteamID {target}");
-                }
-                else
-                {
-                    SendReply(admin, "Игрок не найден. Используйте точное имя или SteamID.");
-                }
-            }
-        }
-
-        private void CheckPermissionCommand(BasePlayer admin, string target)
-        {
-            var targetPlayer = FindPlayer(target);
-            if (targetPlayer != null)
-            {
-                bool hasPermission = permission.UserHasPermission(targetPlayer.UserIDString, config.Permission);
-                string status = hasPermission ? "ЕСТЬ" : "НЕТ";
-                SendReply(admin, $"Игрок {targetPlayer.displayName}: права {config.Permission} - {status}");
-                if (targetPlayer.IsAdmin)
-                {
-                    SendReply(admin, "Примечание: Игрок является администратором и имеет доступ независимо от прав.");
-                }
-            }
-            else
-            {
-                if (target.Length == 17 && ulong.TryParse(target, out ulong steamId))
-                {
-                    bool hasPermission = permission.UserHasPermission(target, config.Permission);
-                    string status = hasPermission ? "ЕСТЬ" : "НЕТ";
-                    SendReply(admin, $"SteamID {target}: права {config.Permission} - {status}");
-                }
-                else
-                {
-                    SendReply(admin, "Игрок не найден. Используйте точное имя или SteamID.");
-                }
-            }
-        }
-
-        private BasePlayer FindPlayer(string nameOrId)
-        {
-            foreach (var player in BasePlayer.activePlayerList)
-            {
-                if (player.displayName.ToLower().Contains(nameOrId.ToLower()) || 
-                    player.UserIDString == nameOrId)
-                {
-                    return player;
-                }
-            }
-            return null;
         }
         #endregion
 
@@ -595,8 +436,7 @@ namespace Oxide.Plugins
                 CuiHelper.DestroyUi(player, "CupboardStackButton");
             }
             
-            // Очищаем данные о модифицированных предметах и ссылки на шкафы
-            modifiedItems.Clear();
+            // Очищаем данные
             playerCupboards.Clear();
         }
         #endregion
