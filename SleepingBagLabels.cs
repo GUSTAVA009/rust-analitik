@@ -254,14 +254,6 @@ namespace Oxide.Plugins
             if (ownerId == 0) return "Sleeping Bag";
             var player = BasePlayer.FindByID(ownerId) ?? BasePlayer.FindSleeping(ownerId);
             if (player != null) return player.displayName ?? ownerId.ToString();
-            // Try offline name cache
-            try
-            {
-                var pid = PlayerNameID.Find(ownerId);
-                if (pid != null && !string.IsNullOrEmpty(pid.displayName))
-                    return pid.displayName;
-            }
-            catch {}
             if (covalence.Players != null)
             {
                 var ipl = covalence.Players.FindPlayerById(ownerId.ToString());
