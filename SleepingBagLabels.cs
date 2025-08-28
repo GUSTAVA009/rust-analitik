@@ -269,6 +269,14 @@ namespace Oxide.Plugins
             return ownerId.ToString();
         }
 
+        private ulong GetBagOwnerId(SleepingBag bag)
+        {
+            if (bag == null) return 0;
+            var deployer = bag.deployerUserID;
+            if (deployer != 0) return deployer;
+            return bag.OwnerID;
+        }
+
         private bool IsSameTeam(ulong viewerId, ulong ownerId)
         {
             if (viewerId == 0 || ownerId == 0) return false;
@@ -327,7 +335,7 @@ namespace Oxide.Plugins
 
         private void DrawBagForPlayer(BasePlayer player, SleepingBag entity)
         {
-            var ownerId = entity.OwnerID;
+            var ownerId = GetBagOwnerId(entity);
             var ownerName = GetOwnerName(ownerId);
             var isSameTeam = IsSameTeam(player.userID, ownerId);
 
@@ -341,7 +349,8 @@ namespace Oxide.Plugins
                 color = isSameTeam ? _config.TeamColorHex : _config.OtherTeamColorHex;
             }
 
-            var label = _streamerHidden.Contains(player.userID) ? "Sleeping Bag" : ownerName;
+            var canShowName = ownerId == player.userID || isSameTeam;
+            var label = (!_streamerHidden.Contains(player.userID) && canShowName) ? ownerName : "Sleeping Bag";
 
             var worldPos = entity.transform.position + Vector3.up * 0.4f;
             DrawText(player, worldPos, color, label);
