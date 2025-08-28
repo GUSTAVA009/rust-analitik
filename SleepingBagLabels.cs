@@ -56,10 +56,7 @@ namespace Oxide.Plugins
                 {
                     _streamerHidden.Add(player.userID);
                 }
-                if (permission.UserHasPermission(player.UserIDString, PermUse))
-                {
-                    _labelsEnabled.Add(player.userID);
-                }
+                _labelsEnabled.Add(player.userID);
             }
             timer.Every(_config.RefreshSeconds, DrawLoopTick);
         }
@@ -67,10 +64,7 @@ namespace Oxide.Plugins
         private void OnPlayerInit(BasePlayer player)
         {
             if (player == null) return;
-            if (permission.UserHasPermission(player.UserIDString, PermUse))
-            {
-                _labelsEnabled.Add(player.userID);
-            }
+            _labelsEnabled.Add(player.userID);
         }
 
         private void Unload()
@@ -198,7 +192,6 @@ namespace Oxide.Plugins
         private void DrawForPlayer(BasePlayer player, bool force = false)
         {
             if (player == null || !player.IsConnected) return;
-            if (!permission.UserHasPermission(player.UserIDString, PermUse)) return;
             if (!_labelsEnabled.Contains(player.userID)) return; // per-player toggle
 
             var now = Time.realtimeSinceStartup;
@@ -349,7 +342,7 @@ namespace Oxide.Plugins
                 color = isSameTeam ? _config.TeamColorHex : _config.OtherTeamColorHex;
             }
 
-            var canShowName = ownerId == player.userID || isSameTeam;
+            var canShowName = true; // показываем всем игрокам
             var label = (!_streamerHidden.Contains(player.userID) && canShowName) ? ownerName : "Sleeping Bag";
 
             var worldPos = entity.transform.position + Vector3.up * 0.4f;
