@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Sleeping Bag Labels", "Your Name", "1.0.2")]
+    [Info("Sleeping Bag Labels", "Your Name", "1.0.3")]
     [Description("Shows 3D text labels above sleeping bags with owner names and team-based colors")]
     public class SleepingBagLabels : RustPlugin
     {
@@ -20,8 +20,15 @@ namespace Oxide.Plugins
         
         private readonly Dictionary<NetworkableId, TextMesh> _activeLables = new Dictionary<NetworkableId, TextMesh>();
         private readonly Dictionary<ulong, DateTime> _playerCooldowns = new Dictionary<ulong, DateTime>();
+        private readonly Dictionary<ulong, PlayerSettings> _playerSettings = new Dictionary<ulong, PlayerSettings>();
         
         private PluginConfig _config;
+        
+        private class PlayerSettings
+        {
+            public bool ShowLabels { get; set; } = true;
+            public float MaxDistance { get; set; } = 50f;
+        }
         
         #endregion
         
@@ -164,6 +171,26 @@ namespace Oxide.Plugins
         
         #endregion
         
+        #region Player Settings
+        
+        private PlayerSettings GetPlayerSettings(ulong userId)
+        {
+            if (!_playerSettings.TryGetValue(userId, out var settings))
+            {
+                settings = new PlayerSettings();
+                _playerSettings[userId] = settings;
+            }
+            return settings;
+        }
+        
+        private void SavePlayerSettings()
+        {
+            // In a real implementation, you might want to save to a data file
+            // For now, settings persist only during server session
+        }
+        
+        #endregion
+        
         #region Core Functions
         
         private void CreateLabelForBag(SleepingBag sleepingBag)
@@ -267,7 +294,7 @@ namespace Oxide.Plugins
                 var distance = Vector3.Distance(playerPos, sleepingBag.transform.position);
                 var shouldShow = ShouldShowLabel(player, sleepingBag, distance, viewDirection);
                 
-                // Update visibility
+                // Update visibility for all players (this is a global label)
                 textMesh.gameObject.SetActive(shouldShow);
                 
                 if (shouldShow)
@@ -275,7 +302,7 @@ namespace Oxide.Plugins
                     // Update text content
                     textMesh.text = GetDisplayText(sleepingBag);
                     
-                    // Update color based on player relationship
+                    // Update color based on the first player found (simplified approach)
                     var color = GetBagColor(sleepingBag, player);
                     textMesh.color = color;
                     
@@ -288,7 +315,12 @@ namespace Oxide.Plugins
         private bool ShouldShowLabel(BasePlayer viewer, SleepingBag bag, float distance, Vector3 viewDirection)
         {
             if (!_config.Display.ShowLabels) return false;
-            if (distance > _config.Display.MaxDistance) return false;
+            
+            var playerSettings = GetPlayerSettings(viewer.userID);
+            if (!playerSettings.ShowLabels) return false;
+            
+            var maxDistance = Math.Min(_config.Display.MaxDistance, playerSettings.MaxDistance);
+            if (distance > maxDistance) return false;
             
             if (_config.Display.ShowOnlyWhenLooking)
             {
@@ -458,21 +490,36 @@ namespace Oxide.Plugins
             
             if (args.Length == 0)
             {
-                SendReply(player, "Sleeping Bag Labels Commands:");
+                var currentSettings = GetPlayerSettings(player.userID);
+                SendReply(player, "🏠 Sleeping Bag Labels Commands:");
                 SendReply(player, "/sleepingbag toggle - Toggle labels on/off");
                 SendReply(player, "/sleepingbag distance <value> - Set max distance");
+                SendReply(player, "/sleepingbag status - Show current settings");
                 if (permission.UserHasPermission(player.UserIDString, PERMISSION_ADMIN))
                 {
                     SendReply(player, "/sleepingbag reload - Reload configuration");
+                    SendReply(player, "/sleepingbag debug - Show debug information");
+                    SendReply(player, "/sleepingbag refresh - Refresh all labels");
                 }
+                SendReply(player, $"📊 Current: Labels {(currentSettings.ShowLabels ? "✅ ON" : "❌ OFF")}, Distance: {currentSettings.MaxDistance}m");
                 return;
             }
             
             switch (args[0].ToLower())
             {
                 case "toggle":
-                    // TODO: Implement per-player toggle
-                    SendReply(player, "Label toggle functionality will be implemented in future update!");
+                    var playerSettings = GetPlayerSettings(player.userID);
+                    playerSettings.ShowLabels = !playerSettings.ShowLabels;
+                    SavePlayerSettings();
+                    
+                    if (playerSettings.ShowLabels)
+                    {
+                        SendReply(player, "✅ Sleeping bag labels are now ENABLED!");
+                    }
+                    else
+                    {
+                        SendReply(player, "❌ Sleeping bag labels are now DISABLED!");
+                    }
                     break;
                     
                 case "distance":
@@ -488,8 +535,68 @@ namespace Oxide.Plugins
                         return;
                     }
                     
-                    // TODO: Implement per-player distance setting
-                    SendReply(player, $"Distance set to {distance} meters!");
+                    var playerDistanceSettings = GetPlayerSettings(player.userID);
+                    playerDistanceSettings.MaxDistance = distance;
+                    SavePlayerSettings();
+                    SendReply(player, $"🎯 Maximum label distance set to {distance} meters!");
+                    break;
+                    
+                case "status":
+                    var statusSettings = GetPlayerSettings(player.userID);
+                    SendReply(player, "📊 Your Sleeping Bag Labels Settings:");
+                    SendReply(player, $"   Labels: {(statusSettings.ShowLabels ? "✅ ENABLED" : "❌ DISABLED")}");
+                    SendReply(player, $"   Max Distance: {statusSettings.MaxDistance} meters");
+                    SendReply(player, $"   Global Settings: {(_config.Display.ShowLabels ? "✅ ON" : "❌ OFF")}");
+                    break;
+                    
+                case "debug":
+                    if (!permission.UserHasPermission(player.UserIDString, PERMISSION_ADMIN))
+                    {
+                        SendReply(player, "You don't have permission to use debug commands!");
+                        return;
+                    }
+                    
+                    var nearbyBags = UnityEngine.Object.FindObjectsOfType<SleepingBag>()
+                        .Where(bag => Vector3.Distance(player.transform.position, bag.transform.position) < 100f)
+                        .ToList();
+                    
+                    SendReply(player, $"🔍 Debug Info:");
+                    SendReply(player, $"   Active Labels: {_activeLables.Count}");
+                    SendReply(player, $"   Nearby Sleeping Bags: {nearbyBags.Count}");
+                    SendReply(player, $"   Plugin Version: 1.0.3");
+                    
+                    foreach (var bag in nearbyBags.Take(5))
+                    {
+                        var distance = Vector3.Distance(player.transform.position, bag.transform.position);
+                        var hasLabel = _activeLables.ContainsKey(bag.net.ID);
+                        SendReply(player, $"   Bag at {distance:F1}m: {(hasLabel ? "✅ Has Label" : "❌ No Label")}");
+                    }
+                    break;
+                    
+                case "refresh":
+                    if (!permission.UserHasPermission(player.UserIDString, PERMISSION_ADMIN))
+                    {
+                        SendReply(player, "You don't have permission to use admin commands!");
+                        return;
+                    }
+                    
+                    // Clear all existing labels
+                    foreach (var label in _activeLables.Values)
+                    {
+                        if (label != null && label.gameObject != null)
+                        {
+                            UnityEngine.Object.DestroyImmediate(label.gameObject);
+                        }
+                    }
+                    _activeLables.Clear();
+                    
+                    // Recreate all labels
+                    foreach (var entity in BaseNetworkable.serverEntities.OfType<SleepingBag>())
+                    {
+                        CreateLabelForBag(entity);
+                    }
+                    
+                    SendReply(player, "🔄 All sleeping bag labels have been refreshed!");
                     break;
                     
                 case "reload":
