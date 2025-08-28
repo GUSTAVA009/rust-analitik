@@ -32,6 +32,7 @@ namespace Oxide.Plugins
             public bool AllowDebugOverlay = true;
             public bool Fallback2DForPlayers = true;
             public float NameVisibleDistance = 8f;
+            public bool Use3DForPlayers = false;
         }
 
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
@@ -258,9 +259,21 @@ namespace Oxide.Plugins
         {
             var color = ParseColor(hexColor, Color.white);
             var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
+            var isPlayer = player.Connection != null && player.Connection.authLevel == 0;
+            if (isPlayer && !_config.Use3DForPlayers)
+            {
+                // 2D only for regular players if 3D is disabled in config
+                if (_config.Fallback2DForPlayers)
+                {
+                    ShowUi(player, text, hexColor);
+                }
+                return;
+            }
+
+            // Draw 3D for admins (and for players if enabled)
             player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
-            // Optional 2D fallback for non-admin players if their ddraw is being cleared by another plugin
-            if (_config.Fallback2DForPlayers && player.Connection != null && player.Connection.authLevel == 0)
+            // Optional 2D fallback for non-admin players even when 3D is enabled
+            if (isPlayer && _config.Fallback2DForPlayers)
             {
                 ShowUi(player, text, hexColor);
             }
