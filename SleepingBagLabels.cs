@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Sleeping Bag Labels", "Your Name", "1.0.3")]
+    [Info("Sleeping Bag Labels", "Your Name", "1.0.4")]
     [Description("Shows 3D text labels above sleeping bags with owner names and team-based colors")]
     public class SleepingBagLabels : RustPlugin
     {
@@ -563,13 +563,13 @@ namespace Oxide.Plugins
                     SendReply(player, $"🔍 Debug Info:");
                     SendReply(player, $"   Active Labels: {_activeLables.Count}");
                     SendReply(player, $"   Nearby Sleeping Bags: {nearbyBags.Count}");
-                    SendReply(player, $"   Plugin Version: 1.0.3");
+                    SendReply(player, $"   Plugin Version: 1.0.4");
                     
                     foreach (var bag in nearbyBags.Take(5))
                     {
-                        var distance = Vector3.Distance(player.transform.position, bag.transform.position);
+                        var bagDistance = Vector3.Distance(player.transform.position, bag.transform.position);
                         var hasLabel = _activeLables.ContainsKey(bag.net.ID);
-                        SendReply(player, $"   Bag at {distance:F1}m: {(hasLabel ? "✅ Has Label" : "❌ No Label")}");
+                        SendReply(player, $"   Bag at {bagDistance:F1}m: {(hasLabel ? "✅ Has Label" : "❌ No Label")}");
                     }
                     break;
                     
