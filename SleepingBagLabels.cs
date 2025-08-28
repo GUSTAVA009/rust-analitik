@@ -209,7 +209,7 @@ namespace Oxide.Plugins
                 player.SendConsoleCommand("ddraw.text", duration, ParseColor("#00FFFF", Color.cyan), debugPos, "DEBUG: SleepingBagLabels", 0.9f);
             }
 
-            var bag = GetLookBag(player, _config.MaxDistance) ?? FindNearestBag(player, 3f);
+            var bag = GetLookBag(player, _config.MaxDistance) ?? FindNearestBag(player, 5f);
             if (bag != null)
             {
                 _lastBag[player.userID] = bag;
@@ -240,7 +240,7 @@ namespace Oxide.Plugins
             // duration slightly longer than tick, so it persists smoothly
             var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
             // size and align centered above bag
-            player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 0.8f);
+            player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
         }
 
         private Color ParseColor(string hex, Color fallback)
@@ -254,6 +254,14 @@ namespace Oxide.Plugins
             if (ownerId == 0) return "Sleeping Bag";
             var player = BasePlayer.FindByID(ownerId) ?? BasePlayer.FindSleeping(ownerId);
             if (player != null) return player.displayName ?? ownerId.ToString();
+            // Try offline name cache
+            try
+            {
+                var pid = PlayerNameID.Find(ownerId);
+                if (pid != null && !string.IsNullOrEmpty(pid.displayName))
+                    return pid.displayName;
+            }
+            catch {}
             if (covalence.Players != null)
             {
                 var ipl = covalence.Players.FindPlayerById(ownerId.ToString());
@@ -284,7 +292,9 @@ namespace Oxide.Plugins
         {
             var eyes = player.eyes?.HeadRay() ?? new Ray(player.transform.position + Vector3.up * 1.5f, player.eyes?.BodyForward() ?? player.transform.forward);
             RaycastHit hit;
-            // Broad layer mask to reduce missed hits; default Physics mask captures deployed entities
+            // Prefer spherecast against deployed layer to better catch small/low colliders
+            if (Physics.SphereCast(eyes, 0.12f, out hit, maxDistance, Layers.Mask.Deployed)) return hit;
+            // Fallback broad raycast
             if (Physics.Raycast(eyes, out hit, maxDistance)) return hit;
             return null;
         }
@@ -343,6 +353,10 @@ namespace Oxide.Plugins
             }
 
             var label = ownerName; // всегда показываем ник владельца всем игрокам
+            if (string.IsNullOrWhiteSpace(label) || (label == "Sleeping Bag" && ownerId != 0))
+            {
+                label = ownerId.ToString();
+            }
 
             var worldPos = entity.transform.position + Vector3.up * 0.4f;
             DrawText(player, worldPos, color, label);
