@@ -417,16 +417,22 @@ namespace Oxide.Plugins
         {
             var color = HexToCuiColor(hexColor, 1f);
             var container = new CuiElementContainer();
+            const int fontSize = 10;
+            var charCount = string.IsNullOrEmpty(text) ? 0 : text.Length;
+            var width = Mathf.Clamp(charCount * (fontSize * 0.6f) + 24f, 80f, 260f);
+            var height = Mathf.Clamp(fontSize * 2.0f, 16f, 26f);
+            var halfW = width * 0.5f;
+            var halfH = height * 0.5f;
             var panel = new CuiPanel
             {
-                Image = { Color = "0 0 0 0" },
-                RectTransform = { AnchorMin = "0.5 0.525", AnchorMax = "0.5 0.525", OffsetMin = "-220 -16", OffsetMax = "220 16" },
+                Image = { Color = "0 0 0 0.35" },
+                RectTransform = { AnchorMin = "0.5 0.525", AnchorMax = "0.5 0.525", OffsetMin = $"-{halfW} -{halfH}", OffsetMax = $"{halfW} {halfH}" },
                 CursorEnabled = false
             };
             container.Add(panel, "Overlay", UiRoot);
             var label = new CuiLabel
             {
-                Text = { Text = text, Color = color, FontSize = 15, Align = TextAnchor.MiddleCenter },
+                Text = { Text = text, Color = color, FontSize = fontSize, Align = TextAnchor.MiddleCenter },
                 RectTransform = { AnchorMin = "0 0", AnchorMax = "1 1" }
             };
             container.Add(label, UiRoot);
