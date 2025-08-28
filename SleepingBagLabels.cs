@@ -240,8 +240,9 @@ namespace Oxide.Plugins
 
         private void DrawText(BasePlayer player, Vector3 worldPos, string hexColor, string text)
         {
-            // Use 2D CUI near crosshair so all players can see it (shown only while aiming at bag)
-            ShowUi(player, text, hexColor);
+            var color = ParseColor(hexColor, Color.white);
+            var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
+            player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
         }
 
         private Color ParseColor(string hex, Color fallback)
