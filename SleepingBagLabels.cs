@@ -28,6 +28,8 @@ namespace Oxide.Plugins
 
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
         private readonly Dictionary<ulong, float> _lastDrawAt = new Dictionary<ulong, float>();
+        private readonly Dictionary<ulong, int> _lastDrawnBagId = new Dictionary<ulong, int>();
+        private readonly Dictionary<ulong, float> _lastSignificantDrawAt = new Dictionary<ulong, float>();
 
         private void Init()
         {
@@ -146,17 +148,28 @@ namespace Oxide.Plugins
 
             _lastDrawAt[player.userID] = now;
 
-            ClearDraw(player);
-
             var bag = GetLookBag(player, _config.MaxDistance) ?? FindNearestBag(player, 3f);
             if (bag == null) return;
 
+            var bagId = bag.GetInstanceID();
+            var nowTime = Time.realtimeSinceStartup;
+            if (_lastDrawnBagId.TryGetValue(player.userID, out var lastId) && lastId == bagId)
+            {
+                if (_lastSignificantDrawAt.TryGetValue(player.userID, out var lastSig) && nowTime - lastSig < 1.0f)
+                {
+                    return;
+                }
+            }
+
+            _lastDrawnBagId[player.userID] = bagId;
+            _lastSignificantDrawAt[player.userID] = nowTime;
             DrawBagForPlayer(player, bag);
         }
 
         private void ClearDraw(BasePlayer player)
         {
-            player?.SendConsoleCommand("ddraw.clear");
+            // Safe no-op during tick; used only on unload cleanup with zero-duration
+            player?.SendConsoleCommand("ddraw.text", 0f, Color.clear, Vector3.zero, "");
         }
 
         private void DrawText(BasePlayer player, Vector3 worldPos, string hexColor, string text)
@@ -257,9 +270,7 @@ namespace Oxide.Plugins
 
             var worldPos = entity.transform.position + Vector3.up * 0.4f;
             DrawText(player, worldPos, color, label);
-            // Add a small sphere for debug visibility juxtaposed with text for a brief moment
-            var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
-            player.SendConsoleCommand("ddraw.sphere", duration * 0.9f, ParseColor("#00FFFF", Color.cyan), worldPos, 0.02f);
+            // Optional: sphere removed to reduce console spam
         }
         #endregion
     }
