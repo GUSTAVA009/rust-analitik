@@ -31,6 +31,7 @@ namespace Oxide.Plugins
             public bool DefaultStreamerHideNames = false;
             public bool AllowDebugOverlay = true;
             public bool Fallback2DForPlayers = true;
+            public float NameVisibleDistance = 8f;
         }
 
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
@@ -210,7 +211,8 @@ namespace Oxide.Plugins
                 player.SendConsoleCommand("ddraw.text", duration, ParseColor("#00FFFF", Color.cyan), debugPos, "DEBUG: SleepingBagLabels", 0.9f);
             }
 
-            var bag = GetLookBag(player, _config.MaxDistance) ?? FindNearestBag(player, 5f);
+            var maxVis = Mathf.Max(1f, _config.NameVisibleDistance);
+            var bag = GetLookBag(player, maxVis) ?? FindNearestBag(player, Mathf.Min(2f, maxVis));
             if (bag != null)
             {
                 _lastBag[player.userID] = bag;
@@ -225,6 +227,19 @@ namespace Oxide.Plugins
             }
 
             if (bag == null)
+            {
+                HideUi(player);
+                return;
+            }
+
+            // Distance and LOS gating
+            var eyesPos = player.eyes?.position ?? (player.transform.position + Vector3.up * 1.5f);
+            if (Vector3.Distance(eyesPos, bag.transform.position) > maxVis)
+            {
+                HideUi(player);
+                return;
+            }
+            if (!HasLineOfSight(player, bag))
             {
                 HideUi(player);
                 return;
@@ -361,6 +376,24 @@ namespace Oxide.Plugins
             var worldPos = entity.transform.position + Vector3.up * 0.4f;
             DrawText(player, worldPos, color, label);
             // Optional: sphere removed to reduce console spam
+        }
+
+        private bool HasLineOfSight(BasePlayer player, BaseEntity target)
+        {
+            if (player == null || target == null) return false;
+            var origin = player.eyes?.position ?? (player.transform.position + Vector3.up * 1.5f);
+            var dest = target.transform.position + Vector3.up * 0.2f;
+            var dir = (dest - origin).normalized;
+            var dist = Vector3.Distance(origin, dest);
+            RaycastHit hit;
+            // Raycast against world and constructions; if we hit something before target, LOS is blocked
+            if (Physics.Raycast(origin, dir, out hit, dist, Layers.Mask.Construction | Layers.Mask.World | Layers.Mask.Deployed))
+            {
+                var hitEntity = hit.GetEntity();
+                if (hitEntity == null || hitEntity.net?.ID != target.net?.ID)
+                    return false;
+            }
+            return true;
         }
 
         #region UI
