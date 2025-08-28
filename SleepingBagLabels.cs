@@ -31,7 +31,7 @@ namespace Oxide.Plugins
 
         private void Init()
         {
-            cmd.AddChatCommand(CommandRoot, this, nameof(CmdSleepingBag));
+            AddCovalenceCommand(CommandRoot, nameof(CmdSleepingBag));
             LoadConfigValues();
         }
 
