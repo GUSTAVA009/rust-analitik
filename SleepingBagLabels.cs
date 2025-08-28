@@ -342,8 +342,7 @@ namespace Oxide.Plugins
                 color = isSameTeam ? _config.TeamColorHex : _config.OtherTeamColorHex;
             }
 
-            var canShowName = true; // показываем всем игрокам
-            var label = (!_streamerHidden.Contains(player.userID) && canShowName) ? ownerName : "Sleeping Bag";
+            var label = ownerName; // всегда показываем ник владельца всем игрокам
 
             var worldPos = entity.transform.position + Vector3.up * 0.4f;
             DrawText(player, worldPos, color, label);
