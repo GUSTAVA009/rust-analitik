@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Sleeping Bag Labels", "Your Name", "1.0.0")]
+    [Info("Sleeping Bag Labels", "Your Name", "1.0.1")]
     [Description("Shows 3D text labels above sleeping bags with owner names and team-based colors")]
     public class SleepingBagLabels : RustPlugin
     {
@@ -18,7 +18,7 @@ namespace Oxide.Plugins
         private const string PERMISSION_USE = "sleepingbaglabels.use";
         private const string PERMISSION_ADMIN = "sleepingbaglabels.admin";
         
-        private readonly Dictionary<uint, TextMesh> _activeLables = new Dictionary<uint, TextMesh>();
+        private readonly Dictionary<NetworkableId, TextMesh> _activeLables = new Dictionary<NetworkableId, TextMesh>();
         private readonly Dictionary<ulong, DateTime> _playerCooldowns = new Dictionary<ulong, DateTime>();
         
         private PluginConfig _config;
@@ -212,7 +212,7 @@ namespace Oxide.Plugins
             _activeLables[sleepingBag.net.ID] = textMesh;
         }
         
-        private void RemoveLabelForBag(uint bagId)
+        private void RemoveLabelForBag(NetworkableId bagId)
         {
             if (_activeLables.TryGetValue(bagId, out var textMesh))
             {
