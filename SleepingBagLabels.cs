@@ -240,9 +240,8 @@ namespace Oxide.Plugins
 
         private void DrawText(BasePlayer player, Vector3 worldPos, string hexColor, string text)
         {
-            var color = ParseColor(hexColor, Color.white);
-            var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
-            player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
+            // Use 2D CUI near crosshair so all players can see it (shown only while aiming at bag)
+            ShowUi(player, text, hexColor);
         }
 
         private Color ParseColor(string hex, Color fallback)
@@ -368,13 +367,13 @@ namespace Oxide.Plugins
             var panel = new CuiPanel
             {
                 Image = { Color = "0 0 0 0" },
-                RectTransform = { AnchorMin = "0.5 0.52", AnchorMax = "0.5 0.52", OffsetMin = "-200 -18", OffsetMax = "200 18" },
+                RectTransform = { AnchorMin = "0.5 0.525", AnchorMax = "0.5 0.525", OffsetMin = "-220 -16", OffsetMax = "220 16" },
                 CursorEnabled = false
             };
             container.Add(panel, "Overlay", UiRoot);
             var label = new CuiLabel
             {
-                Text = { Text = text, Color = color, FontSize = 16, Align = TextAnchor.MiddleCenter },
+                Text = { Text = text, Color = color, FontSize = 15, Align = TextAnchor.MiddleCenter },
                 RectTransform = { AnchorMin = "0 0", AnchorMax = "1 1" }
             };
             container.Add(label, UiRoot);
