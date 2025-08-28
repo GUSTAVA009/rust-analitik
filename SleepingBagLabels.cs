@@ -16,6 +16,7 @@ namespace Oxide.Plugins
         private const string PermUse = "sleepingbaglabels.use";
         private const string PermStream = "sleepingbaglabels.stream";
         private const string PermDebug = "sleepingbaglabels.debug";
+        private const string PermToggle = "sleepingbaglabels.toggle";
 
         private Configuration _config;
 
@@ -27,11 +28,13 @@ namespace Oxide.Plugins
             public float MaxDistance = 20f;
             public float RefreshSeconds = 0.25f;
             public bool DefaultStreamerHideNames = false;
+            public bool AllowDebugOverlay = true;
         }
 
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
         private readonly Dictionary<ulong, float> _lastDrawAt = new Dictionary<ulong, float>();
         private readonly HashSet<ulong> _debugEnabled = new HashSet<ulong>();
+        private readonly HashSet<ulong> _labelsEnabled = new HashSet<ulong>();
         private readonly Dictionary<ulong, int> _lastDrawnBagId = new Dictionary<ulong, int>();
         private readonly Dictionary<ulong, float> _lastSignificantDrawAt = new Dictionary<ulong, float>();
 
@@ -41,6 +44,7 @@ namespace Oxide.Plugins
             permission.RegisterPermission(PermUse, this);
             permission.RegisterPermission(PermStream, this);
             permission.RegisterPermission(PermDebug, this);
+            permission.RegisterPermission(PermToggle, this);
             LoadConfigValues();
         }
 
@@ -52,8 +56,21 @@ namespace Oxide.Plugins
                 {
                     _streamerHidden.Add(player.userID);
                 }
+                if (permission.UserHasPermission(player.UserIDString, PermUse))
+                {
+                    _labelsEnabled.Add(player.userID);
+                }
             }
             timer.Every(_config.RefreshSeconds, DrawLoopTick);
+        }
+
+        private void OnPlayerInit(BasePlayer player)
+        {
+            if (player == null) return;
+            if (permission.UserHasPermission(player.UserIDString, PermUse))
+            {
+                _labelsEnabled.Add(player.userID);
+            }
         }
 
         private void Unload()
@@ -92,13 +109,35 @@ namespace Oxide.Plugins
 
             if (args.Length == 0)
             {
-                iPlayer.Reply($"SleepingBagLabels: /{CommandRoot} stream, /{CommandRoot} debug [on|off]");
+                iPlayer.Reply($"SleepingBagLabels: /{CommandRoot} on|off, /{CommandRoot} stream, /{CommandRoot} debug [on|off]");
                 return;
             }
 
             var sub = args[0].ToLower();
             switch (sub)
             {
+                case "on":
+                case "+":
+                case "enable":
+                    if (!permission.UserHasPermission(player.UserIDString, PermToggle) && !permission.UserHasPermission(player.UserIDString, PermUse))
+                    {
+                        iPlayer.Reply("Нет прав на включение меток.");
+                        return;
+                    }
+                    _labelsEnabled.Add(player.userID);
+                    iPlayer.Reply("Метки включены.");
+                    break;
+                case "off":
+                case "-":
+                case "disable":
+                    if (!permission.UserHasPermission(player.UserIDString, PermToggle) && !permission.UserHasPermission(player.UserIDString, PermUse))
+                    {
+                        iPlayer.Reply("Нет прав на отключение меток.");
+                        return;
+                    }
+                    _labelsEnabled.Remove(player.userID);
+                    iPlayer.Reply("Метки отключены.");
+                    break;
                 case "stream":
                 case "streamer":
                     if (!permission.UserHasPermission(player.UserIDString, PermStream) && !permission.UserHasPermission(player.UserIDString, PermUse))
@@ -160,6 +199,7 @@ namespace Oxide.Plugins
         {
             if (player == null || !player.IsConnected) return;
             if (!permission.UserHasPermission(player.UserIDString, PermUse)) return;
+            if (!_labelsEnabled.Contains(player.userID)) return; // per-player toggle
 
             var now = Time.realtimeSinceStartup;
             if (!force && _lastDrawAt.TryGetValue(player.userID, out var last) && now - last < _config.RefreshSeconds * 0.9f)
@@ -167,7 +207,7 @@ namespace Oxide.Plugins
 
             _lastDrawAt[player.userID] = now;
 
-            if (_debugEnabled.Contains(player.userID))
+            if (_debugEnabled.Contains(player.userID) && _config.AllowDebugOverlay)
             {
                 var origin = player.eyes?.position ?? (player.transform.position + Vector3.up * 1.5f);
                 var forward = player.eyes != null ? player.eyes.BodyForward() : player.transform.forward;
@@ -177,20 +217,21 @@ namespace Oxide.Plugins
             }
 
             var bag = GetLookBag(player, _config.MaxDistance) ?? FindNearestBag(player, 3f);
-            if (bag == null) return;
-
-            var bagId = bag.GetInstanceID();
-            var nowTime = Time.realtimeSinceStartup;
-            if (_lastDrawnBagId.TryGetValue(player.userID, out var lastId) && lastId == bagId)
+            if (bag != null)
             {
-                if (_lastSignificantDrawAt.TryGetValue(player.userID, out var lastSig) && nowTime - lastSig < 1.0f)
+                _lastBag[player.userID] = bag;
+                _lastBagSeenAt[player.userID] = now;
+            }
+            else
+            {
+                if (_lastBag.TryGetValue(player.userID, out var cached) && _lastBagSeenAt.TryGetValue(player.userID, out var seenAt) && now - seenAt <= 0.35f)
                 {
-                    return;
+                    bag = cached; // stick briefly to avoid flicker
                 }
             }
 
-            _lastDrawnBagId[player.userID] = bagId;
-            _lastSignificantDrawAt[player.userID] = nowTime;
+            if (bag == null) return;
+
             DrawBagForPlayer(player, bag);
         }
 
@@ -232,10 +273,10 @@ namespace Oxide.Plugins
         {
             if (viewerId == 0 || ownerId == 0) return false;
             var rm = RelationshipManager.ServerInstance;
-            var viewer = rm?.FindTeam(viewerId);
-            var owner = rm?.FindTeam(ownerId);
-            if (viewer == null || owner == null) return false;
-            return viewer.teamID != 0 && viewer.teamID == owner.teamID;
+            var viewerTeam = rm?.FindPlayersTeam(viewerId);
+            var ownerTeam = rm?.FindPlayersTeam(ownerId);
+            if (viewerTeam == null || ownerTeam == null) return false;
+            return viewerTeam.teamID != 0 && viewerTeam.teamID == ownerTeam.teamID;
         }
 
         private RaycastHit? GetLookHit(BasePlayer player, float maxDistance)
@@ -290,9 +331,15 @@ namespace Oxide.Plugins
             var ownerName = GetOwnerName(ownerId);
             var isSameTeam = IsSameTeam(player.userID, ownerId);
 
-            var color = isSameTeam ? _config.TeamColorHex : _config.OtherTeamColorHex;
+            string color;
             if (ownerId == 0)
+            {
                 color = _config.NoTeamColorHex;
+            }
+            else
+            {
+                color = isSameTeam ? _config.TeamColorHex : _config.OtherTeamColorHex;
+            }
 
             var label = _streamerHidden.Contains(player.userID) ? "Sleeping Bag" : ownerName;
 
