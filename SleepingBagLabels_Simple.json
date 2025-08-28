@@ -1,0 +1,27 @@
+{
+  "Display Settings": {
+    "Show sleeping bag labels": true,
+    "Label height offset": 1.5,
+    "Font size": 14,
+    "Max display distance": 50.0,
+    "Show only when looking at bag": false
+  },
+  "Color Settings": {
+    "Teammate color (hex)": "#00FF00",
+    "Enemy color (hex)": "#FF0000",
+    "Neutral color (hex)": "#FFFF00",
+    "Own sleeping bag color (hex)": "#00FFFF"
+  },
+  "Streamer Settings": {
+    "Hide player names": false,
+    "Replace name with text": "Player",
+    "Show only team/enemy indicator": false,
+    "Teammate indicator": "Teammate",
+    "Enemy indicator": "Enemy"
+  },
+  "Performance Settings": {
+    "Update frequency (seconds)": 1.0,
+    "Max labels per player": 20,
+    "Enable distance culling": true
+  }
+}

@@ -9,8 +9,8 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Sleeping Bag Labels", "Your Name", "1.0.2")]
-    [Description("Shows 3D text labels above sleeping bags with owner names and team-based colors")]
+    [Info("Sleeping Bag Labels Simple", "Your Name", "1.0.2")]
+    [Description("Shows 3D text labels above sleeping bags with owner names and team-based colors (No Background Version)")]
     public class SleepingBagLabels : RustPlugin
     {
         #region Fields
@@ -58,9 +58,6 @@ namespace Oxide.Plugins
             
             [JsonProperty("Show only when looking at bag")]
             public bool ShowOnlyWhenLooking { get; set; } = false;
-            
-            [JsonProperty("Show background")]
-            public bool ShowBackground { get; set; } = true;
         }
         
         private class ColorSettings
@@ -188,26 +185,6 @@ namespace Oxide.Plugins
             // Set color based on ownership
             var color = GetBagColor(sleepingBag, null); // Will be updated per player
             textMesh.color = HexToColor(_config.Colors.NeutralColor);
-            
-            // Add background if enabled
-            if (_config.Display.ShowBackground)
-            {
-                var backgroundMaterial = CreateBackgroundMaterial();
-                if (backgroundMaterial != null)
-                {
-                    var backgroundObject = new GameObject("Background");
-                    backgroundObject.transform.SetParent(labelObject.transform);
-                    backgroundObject.transform.localPosition = Vector3.zero;
-                    
-                    var backgroundMesh = backgroundObject.AddComponent<MeshRenderer>();
-                    var backgroundFilter = backgroundObject.AddComponent<MeshFilter>();
-                    
-                    // Create simple quad mesh for background
-                    backgroundFilter.mesh = CreateQuadMesh(textMesh.text.Length * 0.1f, 0.2f);
-                    backgroundMesh.material = backgroundMaterial;
-                    backgroundObject.transform.localPosition = new Vector3(0, 0, 0.01f);
-                }
-            }
             
             // Make label face camera
             var billboard = labelObject.AddComponent<Billboard>();
@@ -379,68 +356,6 @@ namespace Oxide.Plugins
             {
                 return Color.white;
             }
-        }
-        
-        private Mesh CreateQuadMesh(float width, float height)
-        {
-            var mesh = new Mesh();
-            
-            var vertices = new Vector3[]
-            {
-                new Vector3(-width/2, -height/2, 0),
-                new Vector3(width/2, -height/2, 0),
-                new Vector3(width/2, height/2, 0),
-                new Vector3(-width/2, height/2, 0)
-            };
-            
-            var triangles = new int[] { 0, 1, 2, 0, 2, 3 };
-            var uvs = new Vector2[]
-            {
-                new Vector2(0, 0),
-                new Vector2(1, 0),
-                new Vector2(1, 1),
-                new Vector2(0, 1)
-            };
-            
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.uv = uvs;
-            mesh.RecalculateNormals();
-            
-            return mesh;
-        }
-        
-        private Material CreateBackgroundMaterial()
-        {
-            // Try to find a suitable shader, fallback to standard shader if needed
-            var shader = Shader.Find("Unlit/Color") ?? 
-                        Shader.Find("Standard") ?? 
-                        Shader.Find("UI/Default") ??
-                        Shader.Find("Sprites/Default");
-            
-            if (shader == null)
-            {
-                PrintWarning("No suitable shader found for background material. Background will be disabled.");
-                return null;
-            }
-            
-            var material = new Material(shader);
-            material.color = new Color(0, 0, 0, 0.5f);
-            
-            // Set additional properties for transparency if using Standard shader
-            if (shader.name == "Standard")
-            {
-                material.SetFloat("_Mode", 3); // Transparent mode
-                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                material.SetInt("_ZWrite", 0);
-                material.DisableKeyword("_ALPHATEST_ON");
-                material.EnableKeyword("_ALPHABLEND_ON");
-                material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                material.renderQueue = 3000;
-            }
-            
-            return material;
         }
         
         #endregion
