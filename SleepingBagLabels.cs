@@ -72,7 +72,6 @@ namespace Oxide.Plugins
             {
                 ClearDraw(player);
                 HideUi(player);
-                HideWorldLabel(player);
             }
         }
 
@@ -227,7 +226,6 @@ namespace Oxide.Plugins
             if (bag == null)
             {
                 HideUi(player);
-                HideWorldLabel(player);
                 return;
             }
 
@@ -242,8 +240,9 @@ namespace Oxide.Plugins
 
         private void DrawText(BasePlayer player, Vector3 worldPos, string hexColor, string text)
         {
-            // Render via world-space CUI for all clients
-            ShowWorldLabel(player, worldPos, text, hexColor);
+            var color = ParseColor(hexColor, Color.white);
+            var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
+            player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
         }
 
         private Color ParseColor(string hex, Color fallback)
@@ -361,8 +360,6 @@ namespace Oxide.Plugins
         #region UI
         private const string UiRoot = "SBL.Root";
         private readonly HashSet<ulong> _uiVisible = new HashSet<ulong>();
-        private const string UiWorld = "SBL.World";
-        private readonly HashSet<ulong> _uiWorldVisible = new HashSet<ulong>();
 
         private void ShowUi(BasePlayer player, string text, string hexColor)
         {
@@ -398,55 +395,6 @@ namespace Oxide.Plugins
         {
             var col = ParseColor(hex, Color.white);
             return $"{col.r} {col.g} {col.b} {alpha}";
-        }
-        #endregion
-
-        #region WorldLabel
-        private void ShowWorldLabel(BasePlayer player, Vector3 worldPos, string text, string hexColor)
-        {
-            var container = new CuiElementContainer();
-            var color = HexToCuiColor(hexColor, 1f);
-            var elem = new CuiElement
-            {
-                Name = UiWorld,
-                Parent = "Overlay",
-                Components =
-                {
-                    new CuiWorldPanelComponent
-                    {
-                        CameraMode = CuiCameraMode.MainCamera,
-                        WorldPosition = worldPos,
-                        Distance = 30f,
-                        PixelPerfect = false
-                    },
-                    new CuiTextComponent
-                    {
-                        Text = text,
-                        Color = color,
-                        FontSize = 12,
-                        Align = TextAnchor.MiddleCenter
-                    },
-                    new CuiRectTransformComponent
-                    {
-                        AnchorMin = "-0.5 -0.5",
-                        AnchorMax = "0.5 0.5",
-                        OffsetMin = "-60 -12",
-                        OffsetMax = "60 12"
-                    }
-                }
-            };
-            container.Add(elem);
-
-            CuiHelper.DestroyUi(player, UiWorld);
-            CuiHelper.AddUi(player, container);
-            _uiWorldVisible.Add(player.userID);
-        }
-
-        private void HideWorldLabel(BasePlayer player)
-        {
-            if (!_uiWorldVisible.Contains(player.userID)) return;
-            CuiHelper.DestroyUi(player, UiWorld);
-            _uiWorldVisible.Remove(player.userID);
         }
         #endregion
         #endregion
