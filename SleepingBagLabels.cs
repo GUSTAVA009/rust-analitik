@@ -30,6 +30,7 @@ namespace Oxide.Plugins
             public float RefreshSeconds = 0.25f;
             public bool DefaultStreamerHideNames = false;
             public bool AllowDebugOverlay = true;
+            public bool Fallback2DForPlayers = true;
         }
 
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
@@ -243,6 +244,11 @@ namespace Oxide.Plugins
             var color = ParseColor(hexColor, Color.white);
             var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
             player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
+            // Optional 2D fallback for non-admin players if their ddraw is being cleared by another plugin
+            if (_config.Fallback2DForPlayers && player.Connection != null && player.Connection.authLevel == 0)
+            {
+                ShowUi(player, text, hexColor);
+            }
         }
 
         private Color ParseColor(string hex, Color fallback)
