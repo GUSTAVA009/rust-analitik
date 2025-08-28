@@ -35,8 +35,8 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, float> _lastDrawAt = new Dictionary<ulong, float>();
         private readonly HashSet<ulong> _debugEnabled = new HashSet<ulong>();
         private readonly HashSet<ulong> _labelsEnabled = new HashSet<ulong>();
-        private readonly Dictionary<ulong, int> _lastDrawnBagId = new Dictionary<ulong, int>();
-        private readonly Dictionary<ulong, float> _lastSignificantDrawAt = new Dictionary<ulong, float>();
+        private readonly Dictionary<ulong, SleepingBag> _lastBag = new Dictionary<ulong, SleepingBag>();
+        private readonly Dictionary<ulong, float> _lastBagSeenAt = new Dictionary<ulong, float>();
 
         private void Init()
         {
