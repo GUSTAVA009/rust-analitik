@@ -5,6 +5,7 @@ using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
 using UnityEngine;
 using Rust;
+using Oxide.Game.Rust.Cui;
 
 namespace Oxide.Plugins
 {
@@ -34,7 +35,7 @@ namespace Oxide.Plugins
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
         private readonly Dictionary<ulong, float> _lastDrawAt = new Dictionary<ulong, float>();
         private readonly HashSet<ulong> _debugEnabled = new HashSet<ulong>();
-        private readonly HashSet<ulong> _labelsEnabled = new HashSet<ulong>();
+        private readonly HashSet<ulong> _labelsDisabled = new HashSet<ulong>();
         private readonly Dictionary<ulong, SleepingBag> _lastBag = new Dictionary<ulong, SleepingBag>();
         private readonly Dictionary<ulong, float> _lastBagSeenAt = new Dictionary<ulong, float>();
 
@@ -56,7 +57,6 @@ namespace Oxide.Plugins
                 {
                     _streamerHidden.Add(player.userID);
                 }
-                _labelsEnabled.Add(player.userID);
             }
             timer.Every(_config.RefreshSeconds, DrawLoopTick);
         }
@@ -64,7 +64,6 @@ namespace Oxide.Plugins
         private void OnPlayerInit(BasePlayer player)
         {
             if (player == null) return;
-            _labelsEnabled.Add(player.userID);
         }
 
         private void Unload()
@@ -118,7 +117,7 @@ namespace Oxide.Plugins
                         iPlayer.Reply("Нет прав на включение меток.");
                         return;
                     }
-                    _labelsEnabled.Add(player.userID);
+                    _labelsDisabled.Remove(player.userID);
                     iPlayer.Reply("Метки включены.");
                     break;
                 case "off":
@@ -129,7 +128,7 @@ namespace Oxide.Plugins
                         iPlayer.Reply("Нет прав на отключение меток.");
                         return;
                     }
-                    _labelsEnabled.Remove(player.userID);
+                    _labelsDisabled.Add(player.userID);
                     iPlayer.Reply("Метки отключены.");
                     break;
                 case "stream":
@@ -192,7 +191,7 @@ namespace Oxide.Plugins
         private void DrawForPlayer(BasePlayer player, bool force = false)
         {
             if (player == null || !player.IsConnected) return;
-            if (!_labelsEnabled.Contains(player.userID)) return; // per-player toggle
+            if (_labelsDisabled.Contains(player.userID)) return; // per-player toggle (default ON)
 
             var now = Time.realtimeSinceStartup;
             if (!force && _lastDrawAt.TryGetValue(player.userID, out var last) && now - last < _config.RefreshSeconds * 0.9f)
@@ -223,7 +222,11 @@ namespace Oxide.Plugins
                 }
             }
 
-            if (bag == null) return;
+            if (bag == null)
+            {
+                HideUi(player);
+                return;
+            }
 
             DrawBagForPlayer(player, bag);
         }
@@ -241,6 +244,8 @@ namespace Oxide.Plugins
             var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
             // size and align centered above bag
             player.SendConsoleCommand("ddraw.text", duration, color, worldPos, text, 1.1f);
+            // Also show CUI so non-admin players can see owner names
+            ShowUi(player, text, hexColor);
         }
 
         private Color ParseColor(string hex, Color fallback)
@@ -354,6 +359,47 @@ namespace Oxide.Plugins
             DrawText(player, worldPos, color, label);
             // Optional: sphere removed to reduce console spam
         }
+
+        #region UI
+        private const string UiRoot = "SBL.Root";
+        private readonly HashSet<ulong> _uiVisible = new HashSet<ulong>();
+
+        private void ShowUi(BasePlayer player, string text, string hexColor)
+        {
+            var color = HexToCuiColor(hexColor, 1f);
+            var container = new CuiElementContainer();
+            var panel = new CuiPanel
+            {
+                Image = { Color = "0 0 0 0" },
+                RectTransform = { AnchorMin = "0.5 0.52", AnchorMax = "0.5 0.52", OffsetMin = "-200 -18", OffsetMax = "200 18" },
+                CursorEnabled = false
+            };
+            container.Add(panel, "Overlay", UiRoot);
+            var label = new CuiLabel
+            {
+                Text = { Text = text, Color = color, FontSize = 16, Align = TextAnchor.MiddleCenter },
+                RectTransform = { AnchorMin = "0 0", AnchorMax = "1 1" }
+            };
+            container.Add(label, UiRoot);
+
+            CuiHelper.DestroyUi(player, UiRoot);
+            CuiHelper.AddUi(player, container);
+            _uiVisible.Add(player.userID);
+        }
+
+        private void HideUi(BasePlayer player)
+        {
+            if (!_uiVisible.Contains(player.userID)) return;
+            CuiHelper.DestroyUi(player, UiRoot);
+            _uiVisible.Remove(player.userID);
+        }
+
+        private string HexToCuiColor(string hex, float alpha)
+        {
+            var col = ParseColor(hex, Color.white);
+            return $"{col.r} {col.g} {col.b} {alpha}";
+        }
+        #endregion
         #endregion
     }
 }
