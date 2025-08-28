@@ -190,7 +190,7 @@ namespace Oxide.Plugins
         private bool IsSameTeam(ulong viewerId, ulong ownerId)
         {
             if (viewerId == 0 || ownerId == 0) return false;
-            var rm = RelationshipManager.Instance ?? RelationshipManager.ServerInstance;
+            var rm = RelationshipManager.ServerInstance;
             var viewer = rm?.FindTeam(viewerId);
             var owner = rm?.FindTeam(ownerId);
             if (viewer == null || owner == null) return false;
