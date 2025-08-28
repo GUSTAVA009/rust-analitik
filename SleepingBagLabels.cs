@@ -13,6 +13,9 @@ namespace Oxide.Plugins
     public class SleepingBagLabels : CovalencePlugin
     {
         private const string CommandRoot = "sleepingbag";
+        private const string PermUse = "sleepingbaglabels.use";
+        private const string PermStream = "sleepingbaglabels.stream";
+        private const string PermDebug = "sleepingbaglabels.debug";
 
         private Configuration _config;
 
@@ -28,12 +31,16 @@ namespace Oxide.Plugins
 
         private readonly HashSet<ulong> _streamerHidden = new HashSet<ulong>();
         private readonly Dictionary<ulong, float> _lastDrawAt = new Dictionary<ulong, float>();
+        private readonly HashSet<ulong> _debugEnabled = new HashSet<ulong>();
         private readonly Dictionary<ulong, int> _lastDrawnBagId = new Dictionary<ulong, int>();
         private readonly Dictionary<ulong, float> _lastSignificantDrawAt = new Dictionary<ulong, float>();
 
         private void Init()
         {
             AddCovalenceCommand(CommandRoot, nameof(CmdSleepingBag));
+            permission.RegisterPermission(PermUse, this);
+            permission.RegisterPermission(PermStream, this);
+            permission.RegisterPermission(PermDebug, this);
             LoadConfigValues();
         }
 
@@ -85,7 +92,7 @@ namespace Oxide.Plugins
 
             if (args.Length == 0)
             {
-                iPlayer.Reply($"SleepingBagLabels: /{CommandRoot} stream - toggle hide names, /{CommandRoot} debug - test draw");
+                iPlayer.Reply($"SleepingBagLabels: /{CommandRoot} stream, /{CommandRoot} debug [on|off]");
                 return;
             }
 
@@ -94,6 +101,11 @@ namespace Oxide.Plugins
             {
                 case "stream":
                 case "streamer":
+                    if (!permission.UserHasPermission(player.UserIDString, PermStream) && !permission.UserHasPermission(player.UserIDString, PermUse))
+                    {
+                        iPlayer.Reply("Нет прав на использование команды.");
+                        return;
+                    }
                     if (_streamerHidden.Contains(player.userID))
                     {
                         _streamerHidden.Remove(player.userID);
@@ -106,21 +118,27 @@ namespace Oxide.Plugins
                     }
                     break;
                 case "debug":
-                    var nearest = FindNearestBag(player, 15f);
-                    if (nearest != null)
+                    if (!permission.UserHasPermission(player.UserIDString, PermDebug))
                     {
-                        iPlayer.Reply($"SleepingBagLabels debug: drawing label for '{GetOwnerName(nearest.OwnerID)}' at {Vector3.Distance(player.transform.position, nearest.transform.position):0.0}m");
-                        DrawBagForPlayer(player, nearest);
+                        iPlayer.Reply("Нет прав на отладочную команду.");
+                        return;
+                    }
+                    var enable = true;
+                    if (args.Length > 1)
+                    {
+                        var onoff = args[1].ToLower();
+                        if (onoff == "off" || onoff == "0" || onoff == "false") enable = false;
+                    }
+                    if (enable)
+                    {
+                        _debugEnabled.Add(player.userID);
+                        iPlayer.Reply("Debug overlay включен.");
                     }
                     else
                     {
-                        iPlayer.Reply("SleepingBagLabels debug: no sleeping bag within 15m");
+                        _debugEnabled.Remove(player.userID);
+                        iPlayer.Reply("Debug overlay выключен.");
                     }
-                    // Always draw a debug text 2m in front to verify ddraw works on this client
-                    var origin = player.eyes?.position ?? (player.transform.position + Vector3.up * 1.5f);
-                    var forward = player.eyes != null ? player.eyes.BodyForward() : player.transform.forward;
-                    var debugPos = origin + forward * 2.0f;
-                    player.SendConsoleCommand("ddraw.text", 3f, ParseColor("#00FFFF", Color.cyan), debugPos, "DEBUG: SleepingBagLabels", 0.9f);
                     break;
                 default:
                     iPlayer.Reply("Unknown subcommand");
@@ -141,12 +159,22 @@ namespace Oxide.Plugins
         private void DrawForPlayer(BasePlayer player, bool force = false)
         {
             if (player == null || !player.IsConnected) return;
+            if (!permission.UserHasPermission(player.UserIDString, PermUse)) return;
 
             var now = Time.realtimeSinceStartup;
             if (!force && _lastDrawAt.TryGetValue(player.userID, out var last) && now - last < _config.RefreshSeconds * 0.9f)
                 return;
 
             _lastDrawAt[player.userID] = now;
+
+            if (_debugEnabled.Contains(player.userID))
+            {
+                var origin = player.eyes?.position ?? (player.transform.position + Vector3.up * 1.5f);
+                var forward = player.eyes != null ? player.eyes.BodyForward() : player.transform.forward;
+                var debugPos = origin + forward * 2.0f;
+                var duration = Mathf.Max(_config.RefreshSeconds + 0.05f, 0.15f);
+                player.SendConsoleCommand("ddraw.text", duration, ParseColor("#00FFFF", Color.cyan), debugPos, "DEBUG: SleepingBagLabels", 0.9f);
+            }
 
             var bag = GetLookBag(player, _config.MaxDistance) ?? FindNearestBag(player, 3f);
             if (bag == null) return;
