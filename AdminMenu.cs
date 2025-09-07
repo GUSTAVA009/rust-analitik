@@ -1483,14 +1483,14 @@ namespace Oxide.Plugins
 
             ModernUI.Label(container, UIElement, description, 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
 
-            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement groups view");
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement groups view", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             List<string> groupList = GetGroups();
             groupList.Sort();
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups usergroups {page - 1} {userId} {userName.Replace(" ", "_-!!-_")}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups usergroups {page - 1} {userId} {userName.Replace(" ", "_-!!-_")}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (groupList.Count > 72 && groupList.Count > (72 * page + 72))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups usergroups {page + 1} {userId} {userName.Replace(" ", "_-!!-_")}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups usergroups {page + 1} {userId} {userName.Replace(" ", "_-!!-_")}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             int count = 0;
             for (int i = page * 72; i < groupList.Count; i++)
