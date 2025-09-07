@@ -77,7 +77,7 @@ namespace Oxide.Plugins
         #region Fields
         private readonly Dictionary<ulong, BuildingPrivlidge> playerCupboards = new Dictionary<ulong, BuildingPrivlidge>();
         private readonly Dictionary<ulong, DateTime> lastUIUpdate = new Dictionary<ulong, DateTime>();
-        private readonly Dictionary<string, Dictionary<string, int>> savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
+        private Dictionary<string, Dictionary<string, int>> savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
         
         // Dupe protection system
         private readonly Dictionary<string, Dictionary<string, ItemSnapshot>> cupboardItemSnapshots = new Dictionary<string, Dictionary<string, ItemSnapshot>>();
