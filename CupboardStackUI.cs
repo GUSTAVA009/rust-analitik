@@ -337,7 +337,7 @@ namespace Oxide.Plugins
 
                 // Current items in cupboard
                 var items = cupboard.inventory.itemList.ToList();
-                float yPos = 0.82f;
+                float yPos = 0.75f; // Moved down to create space from header
                 float itemHeight = 0.08f; // Increased height for better spacing
                 float buttonWidth = 0.07f; // Reduced button width
                 float buttonSpacing = 0.01f; // Spacing between buttons
