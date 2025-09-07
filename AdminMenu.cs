@@ -1463,7 +1463,7 @@ namespace Oxide.Plugins
 
                 ModernUI.Panel(container, UIElement, uiColors["button_secondary"], $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
                 ModernUI.Label(container, UIElement, text, 12, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
-                ModernUI.ModernButton(container, UIElement, uiColors["danger"], "X", 8, $"{position[2] - 0.01f} {position[1] + 0.04f}", $"{position[2]} {position[3]}", $"amui.removefromgroup {groupName} {users[i].Key} {page}");
+                ModernUI.ModernButton(container, UIElement, uiColors["danger"], uiColors["button_hover"], "X", 8, $"{position[2] - 0.01f} {position[1] + 0.04f}", $"{position[2]} {position[3]}", $"amui.removefromgroup {groupName} {users[i].Key} {page}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                 ++count;
 
                 if (count >= 72)
