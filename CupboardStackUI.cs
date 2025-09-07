@@ -338,6 +338,9 @@ namespace Oxide.Plugins
                 // Current items in cupboard
                 var items = cupboard.inventory.itemList.ToList();
                 float yPos = 0.82f;
+                float itemHeight = 0.08f; // Increased height for better spacing
+                float buttonWidth = 0.07f; // Reduced button width
+                float buttonSpacing = 0.01f; // Spacing between buttons
 
                 elements.Add(new CuiLabel
                 {
@@ -358,24 +361,29 @@ namespace Oxide.Plugins
                     var item = items[i];
                     if (item == null || !item.IsValid()) continue;
 
-                    float itemY = yPos - (itemIndex * 0.09f);
+                    float itemY = yPos - (itemIndex * itemHeight);
                     
-                    // Item name and current amount
+                    // Item name and current amount - reduced width to make room for buttons
                     elements.Add(new CuiLabel
                     {
                         Text = { 
                             Text = $"{item.info.displayName.english}: {item.amount}",
-                            FontSize = 14,
+                            FontSize = 12, // Reduced font size
                             Align = TextAnchor.MiddleLeft,
                             Color = "1 1 1 1"
                         },
-                        RectTransform = { AnchorMin = $"0.05 {itemY - 0.04}", AnchorMax = $"0.55 {itemY + 0.01}" }
+                        RectTransform = { AnchorMin = $"0.05 {itemY - 0.03}", AnchorMax = $"0.45 {itemY + 0.02}" }
                     }, "CupboardStackUI");
 
-                    // Stack size buttons
-                    float buttonX = 0.58f;
+                    // Stack size buttons - positioned to fit within the interface
+                    float buttonX = 0.47f; // Start buttons after item name
+                    int buttonCount = 0;
+                    int maxButtonsPerRow = 4; // Limit buttons per row
+                    
                     foreach (var stackSize in config.AvailableStackSizes)
                     {
+                        if (buttonCount >= maxButtonsPerRow) break; // Prevent overflow
+                        
                         var buttonColor = "0.2 0.4 0.6 0.8";
                         if (item.amount == stackSize)
                         {
@@ -388,16 +396,20 @@ namespace Oxide.Plugins
                                 Command = $"cupboard.setstack {itemIndex} {stackSize}",
                                 Color = buttonColor
                             },
-                            RectTransform = { AnchorMin = $"{buttonX} {itemY - 0.04}", AnchorMax = $"{buttonX + 0.08} {itemY + 0.01}" },
+                            RectTransform = { 
+                                AnchorMin = $"{buttonX} {itemY - 0.03}", 
+                                AnchorMax = $"{buttonX + buttonWidth} {itemY + 0.02}" 
+                            },
                             Text = { 
                                 Text = stackSize.ToString(),
-                                FontSize = 12,
+                                FontSize = 10, // Reduced font size
                                 Align = TextAnchor.MiddleCenter,
                                 Color = "1 1 1 1"
                             }
                         }, "CupboardStackUI");
                         
-                        buttonX += 0.09f;
+                        buttonX += buttonWidth + buttonSpacing;
+                        buttonCount++;
                     }
 
                     itemIndex++;
