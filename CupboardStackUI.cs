@@ -24,6 +24,13 @@ namespace Oxide.Plugins
             public int MaxItemsDisplay { get; set; } = 8;
             public float UIUpdateDelay { get; set; } = 0.2f;
             public bool EnableLogging { get; set; } = true;
+            
+            // Dupe protection settings
+            public bool EnableDupeProtection { get; set; } = true;
+            public float DupeCheckInterval { get; set; } = 1.0f; // Check every 1 second
+            public int MaxAllowedIncrease { get; set; } = 1000; // Max items that can be added per check
+            public bool AutoRollbackOnDupe { get; set; } = true;
+            public bool BanOnDupeAttempt { get; set; } = false; // Set to true to ban players who attempt to dupe
         }
 
         protected override void LoadDefaultConfig()
@@ -71,6 +78,19 @@ namespace Oxide.Plugins
         private readonly Dictionary<ulong, BuildingPrivlidge> playerCupboards = new Dictionary<ulong, BuildingPrivlidge>();
         private readonly Dictionary<ulong, DateTime> lastUIUpdate = new Dictionary<ulong, DateTime>();
         private readonly Dictionary<string, Dictionary<string, int>> savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
+        
+        // Dupe protection system
+        private readonly Dictionary<string, Dictionary<string, ItemSnapshot>> cupboardItemSnapshots = new Dictionary<string, Dictionary<string, ItemSnapshot>>();
+        private readonly Dictionary<string, DateTime> lastCupboardAccess = new Dictionary<string, DateTime>();
+        
+        public class ItemSnapshot
+        {
+            public string Shortname { get; set; }
+            public int Amount { get; set; }
+            public int SkinId { get; set; }
+            public string Name { get; set; }
+            public DateTime Timestamp { get; set; }
+        }
         #endregion
 
         #region Hooks
@@ -93,6 +113,13 @@ namespace Oxide.Plugins
                         Puts($"Permission {config.Permission} granted to admin: {player.displayName}");
                     }
                 }
+            }
+            
+            // Start dupe protection timer if enabled
+            if (config.EnableDupeProtection)
+            {
+                timer.Repeat(config.DupeCheckInterval, 0, CheckForDuplication);
+                Puts("Dupe protection system activated");
             }
             
             Puts($"CupboardStackUI loaded. Admin-only access enabled. Permission: {config.Permission}");
@@ -190,6 +217,13 @@ namespace Oxide.Plugins
 
                 // Store cupboard reference for player
                 playerCupboards[player.userID] = cupboard;
+                
+                // Take snapshot for dupe protection
+                if (config.EnableDupeProtection)
+                {
+                    TakeCupboardSnapshot(cupboard);
+                    lastCupboardAccess[cupboard.net.ID.ToString()] = DateTime.Now;
+                }
                 
                 // Add stack button with delay to prevent UI conflicts
                 timer.Once(config.UIUpdateDelay, () => 
@@ -816,6 +850,244 @@ namespace Oxide.Plugins
             }
             return null;
         }
+
+        // Dupe protection methods
+        private void TakeCupboardSnapshot(BuildingPrivlidge cupboard)
+        {
+            try
+            {
+                var cupboardId = cupboard.net.ID.ToString();
+                var snapshot = new Dictionary<string, ItemSnapshot>();
+                
+                foreach (var item in cupboard.inventory.itemList)
+                {
+                    if (item != null && item.IsValid())
+                    {
+                        var key = $"{item.info.shortname}_{item.skin}";
+                        snapshot[key] = new ItemSnapshot
+                        {
+                            Shortname = item.info.shortname,
+                            Amount = item.amount,
+                            SkinId = item.skin,
+                            Name = item.info.displayName.english,
+                            Timestamp = DateTime.Now
+                        };
+                    }
+                }
+                
+                cupboardItemSnapshots[cupboardId] = snapshot;
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error taking cupboard snapshot: {ex.Message}");
+            }
+        }
+
+        private void CheckForDuplication()
+        {
+            try
+            {
+                if (!config.EnableDupeProtection) return;
+
+                var currentTime = DateTime.Now;
+                var cupboardsToCheck = new List<string>();
+
+                // Find cupboards that have been accessed recently
+                foreach (var kvp in lastCupboardAccess)
+                {
+                    if ((currentTime - kvp.Value).TotalSeconds < 30) // Check cupboards accessed in last 30 seconds
+                    {
+                        cupboardsToCheck.Add(kvp.Key);
+                    }
+                }
+
+                foreach (var cupboardId in cupboardsToCheck)
+                {
+                    var cupboard = BaseNetworkable.serverEntities.Find(Convert.ToUInt32(cupboardId)) as BuildingPrivlidge;
+                    if (cupboard == null || cupboard.IsDestroyed) continue;
+
+                    CheckCupboardForDuplication(cupboard);
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error in CheckForDuplication: {ex.Message}");
+            }
+        }
+
+        private void CheckCupboardForDuplication(BuildingPrivlidge cupboard)
+        {
+            try
+            {
+                var cupboardId = cupboard.net.ID.ToString();
+                
+                if (!cupboardItemSnapshots.ContainsKey(cupboardId))
+                {
+                    TakeCupboardSnapshot(cupboard);
+                    return;
+                }
+
+                var snapshot = cupboardItemSnapshots[cupboardId];
+                var currentItems = new Dictionary<string, int>();
+
+                // Count current items
+                foreach (var item in cupboard.inventory.itemList)
+                {
+                    if (item != null && item.IsValid())
+                    {
+                        var key = $"{item.info.shortname}_{item.skin}";
+                        if (currentItems.ContainsKey(key))
+                        {
+                            currentItems[key] += item.amount;
+                        }
+                        else
+                        {
+                            currentItems[key] = item.amount;
+                        }
+                    }
+                }
+
+                // Check for suspicious increases
+                foreach (var kvp in currentItems)
+                {
+                    var itemKey = kvp.Key;
+                    var currentAmount = kvp.Value;
+                    
+                    if (snapshot.ContainsKey(itemKey))
+                    {
+                        var snapshotAmount = snapshot[itemKey].Amount;
+                        var increase = currentAmount - snapshotAmount;
+                        
+                        if (increase > config.MaxAllowedIncrease)
+                        {
+                            // Potential duplication detected
+                            HandleDuplicationAttempt(cupboard, itemKey, increase, snapshotAmount, currentAmount);
+                        }
+                    }
+                }
+
+                // Update snapshot
+                TakeCupboardSnapshot(cupboard);
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error checking cupboard for duplication: {ex.Message}");
+            }
+        }
+
+        private void HandleDuplicationAttempt(BuildingPrivlidge cupboard, string itemKey, int increase, int originalAmount, int currentAmount)
+        {
+            try
+            {
+                var cupboardId = cupboard.net.ID.ToString();
+                var itemInfo = itemKey.Split('_')[0];
+                
+                PrintError($"DUPLICATION DETECTED! Cupboard: {cupboardId}, Item: {itemInfo}, Increase: {increase}, Original: {originalAmount}, Current: {currentAmount}");
+                
+                // Log to console and file
+                if (config.EnableLogging)
+                {
+                    Puts($"DUPE ATTEMPT: Cupboard {cupboardId} - {itemInfo} increased by {increase} items");
+                }
+
+                // Auto rollback if enabled
+                if (config.AutoRollbackOnDupe)
+                {
+                    RollbackCupboardItems(cupboard, itemKey, originalAmount);
+                }
+
+                // Ban player if enabled (find who was accessing the cupboard)
+                if (config.BanOnDupeAttempt)
+                {
+                    var accessingPlayer = FindPlayerAccessingCupboard(cupboard);
+                    if (accessingPlayer != null)
+                    {
+                        Server.Command($"ban {accessingPlayer.UserIDString} Duplication attempt detected");
+                        PrintError($"BANNED PLAYER {accessingPlayer.displayName} ({accessingPlayer.UserIDString}) for duplication attempt");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error handling duplication attempt: {ex.Message}");
+            }
+        }
+
+        private void RollbackCupboardItems(BuildingPrivlidge cupboard, string itemKey, int targetAmount)
+        {
+            try
+            {
+                var itemInfo = itemKey.Split('_')[0];
+                var skinId = 0;
+                if (itemKey.Contains("_"))
+                {
+                    int.TryParse(itemKey.Split('_')[1], out skinId);
+                }
+
+                var totalAmount = 0;
+                var itemsToRemove = new List<Item>();
+
+                // Calculate total and mark items for removal
+                foreach (var item in cupboard.inventory.itemList)
+                {
+                    if (item != null && item.IsValid() && 
+                        item.info.shortname == itemInfo && item.skin == skinId)
+                    {
+                        totalAmount += item.amount;
+                        itemsToRemove.Add(item);
+                    }
+                }
+
+                // Remove excess items
+                if (totalAmount > targetAmount)
+                {
+                    var excessAmount = totalAmount - targetAmount;
+                    
+                    foreach (var item in itemsToRemove)
+                    {
+                        if (excessAmount <= 0) break;
+                        
+                        if (item.amount <= excessAmount)
+                        {
+                            excessAmount -= item.amount;
+                            item.Remove();
+                        }
+                        else
+                        {
+                            item.amount -= excessAmount;
+                            item.MarkDirty();
+                            excessAmount = 0;
+                        }
+                    }
+                    
+                    cupboard.inventory.MarkDirty();
+                    PrintError($"ROLLBACK: Removed {totalAmount - targetAmount} excess {itemInfo} from cupboard {cupboard.net.ID}");
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error rolling back cupboard items: {ex.Message}");
+            }
+        }
+
+        private BasePlayer FindPlayerAccessingCupboard(BuildingPrivlidge cupboard)
+        {
+            try
+            {
+                foreach (var kvp in playerCupboards)
+                {
+                    if (kvp.Value == cupboard)
+                    {
+                        return BasePlayer.FindByID(kvp.Key);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error finding player accessing cupboard: {ex.Message}");
+            }
+            return null;
+        }
         #endregion
 
         #region Cleanup
@@ -839,6 +1111,8 @@ namespace Oxide.Plugins
                 // Clean up data
                 playerCupboards.Clear();
                 lastUIUpdate.Clear();
+                cupboardItemSnapshots.Clear();
+                lastCupboardAccess.Clear();
                 
                 Puts("CupboardStackUI unloaded successfully");
             }
