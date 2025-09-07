@@ -412,9 +412,6 @@ namespace Oxide.Plugins
             
             // Close button
             ModernUI.ModernButton(container, UIMain, uiColors["danger"], uiColors["danger_hover"], "✕", 18, "0.95 0.92", "0.98 0.98", "amui.switchelement exit", TextAnchor.MiddleCenter, uiColors["text_primary"]);
-            
-            // Test button
-            ModernUI.ModernButton(container, UIMain, uiColors["button_primary"], uiColors["button_hover"], "TEST", 14, "0.8 0.92", "0.94 0.98", "amui.testbutton", TextAnchor.MiddleCenter, uiColors["text_primary"]);
         }
 
         private void CreateModernSidebar(CuiElementContainer container, BasePlayer player)
@@ -560,6 +557,9 @@ namespace Oxide.Plugins
 
         private void CreateModernMenuPermissions(BasePlayer player, int page = 0, string filter = "")
         {
+            // Destroy old UI first
+            CuiHelper.DestroyUi(player, UIElement);
+            
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Permissions, player.UserIDString);
             CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement permissions view 0");
@@ -928,22 +928,15 @@ namespace Oxide.Plugins
         // Overloaded method for command handlers that need to create new UI
         private void CreateMenuCommands(BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
         {
+            // Destroy old UI first
+            CuiHelper.DestroyUi(player, UIElement);
+            
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateMenuCommands(container, player, subType, page, itemType);
             CuiHelper.AddUi(player, container);
         }
 
         #region UI Commands
-        [ConsoleCommand("amui.testbutton")]
-        private void ccmdTestButton(ConsoleSystem.Arg arg)
-        {
-            BasePlayer player = arg.Connection.player as BasePlayer;
-            if (player == null) return;
-            
-            Puts($"Test button clicked by {player.displayName}!");
-            player.ChatMessage("Test button works!");
-        }
-        
         [ConsoleCommand("amui.switchelement")]
         private void ccmdUISwitch(ConsoleSystem.Arg arg)
         {
@@ -953,10 +946,6 @@ namespace Oxide.Plugins
 
             if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
             
-            // Debug: Log the command
-            Puts($"UI Switch command: {string.Join(" ", arg.Args)} from player {player.displayName}");
-            Puts($"Args length: {arg.Args.Length}");
-
             if (selectData.ContainsKey(player.userID))
                 selectData.Remove(player.userID);
 
@@ -965,12 +954,7 @@ namespace Oxide.Plugins
                 page = arg.GetInt(2);
 
             if (arg.Args.Length == 0)
-            {
-                Puts("No arguments provided!");
                 return;
-            }
-
-            Puts($"Processing command: {arg.Args[0]}");
             switch (arg.Args[0])
             {
                 case "permissions":
@@ -1043,9 +1027,7 @@ namespace Oxide.Plugins
                     return;
 
                 case "exit":
-                    Puts($"Exit command received from {player.displayName}");
                     DestroyUI(player);
-                    Puts($"UI destroyed for {player.displayName}");
                     return;              
             }
         }
@@ -1286,6 +1268,9 @@ namespace Oxide.Plugins
 
         private void CreateMenuGroups(BasePlayer player, GroupSub subType, int page = 0, string filter = "")
         {
+            // Destroy old UI first
+            CuiHelper.DestroyUi(player, UIElement);
+            
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Groups, player.UserIDString);
             CreateGroupTabs(container, player.UserIDString);
@@ -1358,6 +1343,9 @@ namespace Oxide.Plugins
 
         private void CreateMenuConvars(BasePlayer player, int page = 0, string filter = "")
         {
+            // Destroy old UI first
+            CuiHelper.DestroyUi(player, UIElement);
+            
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Convars, player.UserIDString);
             CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement convars view 0");
@@ -1687,6 +1675,10 @@ namespace Oxide.Plugins
             CuiHelper.DestroyUi(player, UIElement);
             CuiHelper.DestroyUi(player, UIMain);
             CuiHelper.DestroyUi(player, UIPopup);
+            
+            // Clear any selection data
+            if (selectData.ContainsKey(player.userID))
+                selectData.Remove(player.userID);
         }
         
         private T ParseType<T>(string type) => (T)Enum.Parse(typeof(T), type, true);
