@@ -1444,15 +1444,15 @@ namespace Oxide.Plugins
 
             ModernUI.Label(container, UIElement, string.Format(msg("groupview", player.UserIDString), groupName), 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
 
-            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement groups view");
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement groups view", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             List<KeyValuePair<string, string>> users = GetUsersInGroupFormatted(groupName);
             users.OrderBy(x => x.Value);
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1} {groupName}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1} {groupName}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (users.Count > 72 && users.Count > (72 * page + 72))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1} {groupName}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1} {groupName}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             int count = 0;
             for (int i = page * 72; i < users.Count; i++)
