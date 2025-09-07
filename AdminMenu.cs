@@ -768,20 +768,20 @@ namespace Oxide.Plugins
 
                 ModernUI.Label(container, UIElement, item.Key, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
 
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[0].ToString(), 10, $"{position[2]} {position[1]}", $"{position[2] + (0.158f * 0.24f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[0]} {(int)itemType} {page}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], amounts[0].ToString(), 10, $"{position[2]} {position[1]}", $"{position[2] + (0.158f * 0.24f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[0]} {(int)itemType} {page}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[1].ToString(), 10, $"{position[2] + (0.158f * 0.26f)} {position[1]}", $"{position[2] + (0.158f * 0.49f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[1]} {(int)itemType} {page}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], amounts[1].ToString(), 10, $"{position[2] + (0.158f * 0.26f)} {position[1]}", $"{position[2] + (0.158f * 0.49f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[1]} {(int)itemType} {page}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[2].ToString(), 10, $"{position[2] + (0.158f * 0.51f)} {position[1]}", $"{position[2] + (0.158f * 0.74f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[2]} {(int)itemType} {page}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], amounts[2].ToString(), 10, $"{position[2] + (0.158f * 0.51f)} {position[1]}", $"{position[2] + (0.158f * 0.74f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[2]} {(int)itemType} {page}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[3].ToString(), 10, $"{position[2] + (0.158f * 0.76f)} {position[1]}", $"{position[2] + 0.158f} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[3]} {(int)itemType} {page}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], amounts[3].ToString(), 10, $"{position[2] + (0.158f * 0.76f)} {position[1]}", $"{position[2] + 0.158f} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[3]} {(int)itemType} {page}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                 i += 2;               
             }
 
             if (itemIndex > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", playerId), 10, "0.05 0.01", "0.15 0.05", $"amui.switchelement give {itemType.ToString()} {page - 1}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", playerId), 10, "0.05 0.01", "0.15 0.05", $"amui.switchelement give {itemType.ToString()} {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (itemIndex + 60 < itemList[itemType].Count)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", playerId), 10, "0.85 0.01", "0.95 0.05", $"amui.switchelement give {itemType.ToString()} {page + 1}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", playerId), 10, "0.85 0.01", "0.95 0.05", $"amui.switchelement give {itemType.ToString()} {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
         }
 
         private void CreateCommandEntry(CuiElementContainer container, CommSub subType, int page, string playerId)
@@ -794,9 +794,9 @@ namespace Oxide.Plugins
             List<CommandEntry> commands = subType == CommSub.Chat ? configData.ChatCommands : configData.ConsoleCommands;
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", playerId), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement commands {subType.ToString()} {page - 1}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", playerId), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement commands {subType.ToString()} {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (commands.Count > 32 && commands.Count > (32 * page + 32))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", playerId), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement commands {subType.ToString()} {page + 1}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", playerId), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement commands {subType.ToString()} {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             int count = 1;
             for (int i = page * 32; i < commands.Count; i++)
@@ -806,7 +806,7 @@ namespace Oxide.Plugins
                 
                 ModernUI.Label(container, UIElement, entry.Name, 15, $"{(isDivisable ? 0.02f : 0.52f)} {0.82f - (0.05f * count)}", $"{(isDivisable ? 0.15f : 0.65f)} {0.87f - (0.05f * count)}", TextAnchor.MiddleLeft);
                 ModernUI.Label(container, UIElement, entry.Description, 15, $"{(isDivisable ? 0.15f : 0.65f)} {0.82f - (0.05f * count)}", $"{(isDivisable ? 0.4f : 0.9f)} {0.87f - (0.05f * count)}", TextAnchor.MiddleLeft);
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("use", playerId), 15, $"{(isDivisable ? 0.41f : 0.91f)} {(0.82f - (0.05f * count)) + 0.005f}", $"{(isDivisable ? 0.49f : 0.99f)} {(0.87f - (0.05f * count)) - 0.005f}", $"amui.runcommand {subType} {i}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("use", playerId), 15, $"{(isDivisable ? 0.41f : 0.91f)} {(0.82f - (0.05f * count)) + 0.005f}", $"{(isDivisable ? 0.49f : 0.99f)} {(0.87f - (0.05f * count)) - 0.005f}", $"amui.runcommand {subType} {i}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
                 if (!isDivisable)
                     ++count;
@@ -844,18 +844,18 @@ namespace Oxide.Plugins
                 // Action buttons
                 if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_KICKBAN_PERMISSION)))
                 {
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], msg("action.kick", playerId), 14, "0.26 0.825", "0.365 0.855", $"amui.kickbaninput {data.target1_Id} {PlayerAction.Kick}");
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], msg("action.ban", playerId), 14, "0.37 0.825", "0.475 0.855", $"amui.kickbaninput {data.target1_Id} {PlayerAction.Ban}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], uiColors["button_hover"], msg("action.kick", playerId), 14, "0.26 0.825", "0.365 0.855", $"amui.kickbaninput {data.target1_Id} {PlayerAction.Kick}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], uiColors["button_hover"], msg("action.ban", playerId), 14, "0.37 0.825", "0.475 0.855", $"amui.kickbaninput {data.target1_Id} {PlayerAction.Ban}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                 }
 
                 if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_KILL_PERMISSION)))
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], msg("action.kill", playerId), 14, "0.26 0.785", "0.365 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.Kill}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], uiColors["button_hover"], msg("action.kill", playerId), 14, "0.26 0.785", "0.365 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.Kill}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
                 if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_STRIP_PERMISSION)))
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("action.stripinventory", playerId), 14, "0.37 0.785", "0.475 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.StripInventory}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("action.stripinventory", playerId), 14, "0.37 0.785", "0.475 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.StripInventory}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
                 if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_HEAL_PERMISSION)))
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("action.resetmetabolism", playerId), 14, "0.48 0.785", "0.585 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.ResetMetabolism}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("action.resetmetabolism", playerId), 14, "0.48 0.785", "0.585 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.ResetMetabolism}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             }
         }
 
@@ -868,7 +868,7 @@ namespace Oxide.Plugins
             ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.87", "0.995 0.92");
             CreateModernCharacterFilter(container, player.userID, data.character, string.Empty);
             ModernUI.Label(container, UIElement, data.selectDesc, 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
-            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement {(data.menuType == MenuType.Commands ? "commands" : data.menuType == MenuType.Groups ? "groups" : "permissions")} {(data.subType.Equals("player") ? "chat" : data.subType)}");
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement {(data.menuType == MenuType.Commands ? "commands" : data.menuType == MenuType.Groups ? "groups" : "permissions")} {(data.subType.Equals("player") ? "chat" : data.subType)}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             List<IPlayer> playerList = null;
             List<string> stringList = null;
@@ -893,9 +893,9 @@ namespace Oxide.Plugins
             }  
            
             if (data.pageNum > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", "amui.makeselection pageDown");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", "amui.makeselection pageDown", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (selectType == SelectType.Player ? (playerList.Count > 72 && playerList.Count > (72 * data.pageNum + 72)) : stringList.Count > 72 && stringList.Count > (72 * data.pageNum + 72))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", "amui.makeselection pageUp");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", "amui.makeselection pageUp", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             int count = 0;
             for (int i = data.pageNum * 72; i < (selectType == SelectType.Player ? playerList.Count : stringList.Count); i++)
@@ -906,12 +906,12 @@ namespace Oxide.Plugins
                 {
                     IPlayer target = playerList[i];
                     string userName = StripTags(target.Name);
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], $"{userName} <size=8>({target.Id})</size>", 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.makeselection target {target.Id} {userName.Replace(" ", "_-!!-_")}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], uiColors["button_hover"], $"{userName} <size=8>({target.Id})</size>", 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.makeselection target {target.Id} {userName.Replace(" ", "_-!!-_")}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
                 }
                 else
                 {
                     string button = stringList[i];
-                    ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], button, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.makeselection target {button.Replace(" ", "_-!!-_")}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], uiColors["button_hover"], button, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.makeselection target {button.Replace(" ", "_-!!-_")}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
                 }
                 ++count;
                 if (count >= 72)
@@ -1265,9 +1265,9 @@ namespace Oxide.Plugins
                     groupList.Sort();
 
                     if (page > 0)
-                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1}");
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                     if (groupList.Count > 72 && groupList.Count > (72 * page + 72))
-                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1}");
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
                     int count = 0;
                     for (int i = page * 72; i < groupList.Count; i++)
@@ -1275,7 +1275,7 @@ namespace Oxide.Plugins
                         string groupId = groupList[i];
                         float[] position = CalculateModernButtonPos(count);
 
-                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.switchelement groups view 0 {groupId}");
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], uiColors["button_hover"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.switchelement groups view 0 {groupId}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
                         ++count;
 
                         if (count >= 72)
@@ -1314,8 +1314,8 @@ namespace Oxide.Plugins
                             ModernUI.Input(container, UIElement, "", groupData.rank, 16, "amui.registergroup input rank", "0.32 0.47", "0.9 0.53");
                         else ModernUI.Label(container, UIElement, groupData.rank, 16, "0.32 0.47", "0.9 0.53", TextAnchor.MiddleLeft);
 
-                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], msg("reset", player.UserIDString), 16, "0.345 0.38", "0.495 0.44", "amui.registergroup reset");
-                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("create", player.UserIDString), 16, "0.505 0.38", "0.655 0.44", "amui.registergroup create");
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], uiColors["button_hover"], msg("reset", player.UserIDString), 16, "0.345 0.38", "0.495 0.44", "amui.registergroup reset", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("create", player.UserIDString), 16, "0.505 0.38", "0.655 0.44", "amui.registergroup create", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                         break;
                     }
             }
@@ -1348,9 +1348,9 @@ namespace Oxide.Plugins
             convars.OrderBy(x => x.FullName);
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (convars.Count > (NUM_PER_PAGE * page + NUM_PER_PAGE))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             for (int i = page * NUM_PER_PAGE; i < Mathf.Min((page + 1) * NUM_PER_PAGE, convars.Count); i++)
             {
@@ -1394,7 +1394,7 @@ namespace Oxide.Plugins
 
             ModernUI.Label(container, UIElement, description, 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
 
-            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement permissions view");
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement permissions view", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             CreateModernCharacterFilter(container, player.userID, filter, string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group 0 {groupOrUserId.Replace(" ", "_-!!-_")}" : $"amui.switchelement permissions player 0 {groupOrUserId} {playerName.Replace(" ", "_-!!-_")}");
 
@@ -1404,9 +1404,9 @@ namespace Oxide.Plugins
             permList.OrderBy(x => x.Key);
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group {page - 1} {groupOrUserId.Replace(" ", "_-!!-_")} {filter}" : $"amui.switchelement permissions player {page - 1} {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {filter}");
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group {page - 1} {groupOrUserId.Replace(" ", "_-!!-_")} {filter}" : $"amui.switchelement permissions player {page - 1} {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (permList.Count > 72 && permList.Count > (72 * page + 72))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group {page + 1} {groupOrUserId.Replace(" ", "_-!!-_")} {filter}" : $"amui.switchelement permissions player {page + 1} {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {filter}");            
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group {page + 1} {groupOrUserId.Replace(" ", "_-!!-_")} {filter}" : $"amui.switchelement permissions player {page + 1} {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);            
 
             int count = 0;
             for (int i = page * 72; i < permList.Count; i++)
