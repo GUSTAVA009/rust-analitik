@@ -268,7 +268,7 @@ namespace Oxide.Plugins
                     Image = { Color = "0.2 0.6 0.2 0.9" },
                     RectTransform = { AnchorMin = "0.82 0.88", AnchorMax = "0.98 0.95" },
                     CursorEnabled = true
-                }, "Hud", "CupboardStackButton");
+                }, "Overlay", "CupboardStackButton");
 
                 // Stack button
                 elements.Add(new CuiButton
