@@ -287,25 +287,25 @@ namespace Oxide.Plugins
             public static void Toggle(CuiElementContainer container, string panel, string color, int fontSize, string aMin, string aMax, string command, bool isOn, string text = "")
             {
                 // Toggle background
-                UI.Panel(container, panel, color, aMin, aMax);
+                Panel(container, panel, color, aMin, aMax);
 
                 // Toggle indicator
                 if (isOn)
                 {
-                    UI.Label(container, panel, "✓", fontSize, aMin, aMax, TextAnchor.MiddleCenter, "0 1 0 1");
+                    Label(container, panel, "✓", fontSize, aMin, aMax, TextAnchor.MiddleCenter, "0 1 0 1");
                 }
                 else
                 {
-                    UI.Label(container, panel, "✗", fontSize, aMin, aMax, TextAnchor.MiddleCenter, "1 0 0 1");
+                    Label(container, panel, "✗", fontSize, aMin, aMax, TextAnchor.MiddleCenter, "1 0 0 1");
                 }
 
                 // Clickable area
-                UI.Button(container, panel, "0 0 0 0", string.Empty, 0, aMin, aMax, command);
+                Button(container, panel, "0 0 0 0", string.Empty, 0, aMin, aMax, command);
 
                 // Label if provided
                 if (!string.IsNullOrEmpty(text))
                 {
-                    UI.Label(container, panel, text, fontSize - 2, $"{aMax.Split(' ')[0]} {aMin.Split(' ')[1]}", $"{aMax.Split(' ')[0] + 0.1f} {aMax.Split(' ')[1]}", TextAnchor.MiddleLeft);
+                    Label(container, panel, text, fontSize - 2, $"{aMax.Split(' ')[0]} {aMin.Split(' ')[1]}", $"{aMax.Split(' ')[0] + 0.1f} {aMax.Split(' ')[1]}", TextAnchor.MiddleLeft);
                 }
             }
 
