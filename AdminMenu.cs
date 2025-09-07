@@ -955,6 +955,7 @@ namespace Oxide.Plugins
             
             // Debug: Log the command
             Puts($"UI Switch command: {string.Join(" ", arg.Args)} from player {player.displayName}");
+            Puts($"Args length: {arg.Args.Length}");
 
             if (selectData.ContainsKey(player.userID))
                 selectData.Remove(player.userID);
@@ -963,6 +964,13 @@ namespace Oxide.Plugins
             if (arg.Args.Length > 2)
                 page = arg.GetInt(2);
 
+            if (arg.Args.Length == 0)
+            {
+                Puts("No arguments provided!");
+                return;
+            }
+
+            Puts($"Processing command: {arg.Args[0]}");
             switch (arg.Args[0])
             {
                 case "permissions":
