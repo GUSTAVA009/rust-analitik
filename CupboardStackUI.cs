@@ -903,7 +903,7 @@ namespace Oxide.Plugins
 
                 foreach (var cupboardId in cupboardsToCheck)
                 {
-                    var cupboard = BaseNetworkable.serverEntities.Find(Convert.ToUInt32(cupboardId)) as BuildingPrivlidge;
+                    var cupboard = BaseNetworkable.serverEntities.Find(new NetworkableId(Convert.ToUInt32(cupboardId))) as BuildingPrivlidge;
                     if (cupboard == null || cupboard.IsDestroyed) continue;
 
                     CheckCupboardForDuplication(cupboard);
