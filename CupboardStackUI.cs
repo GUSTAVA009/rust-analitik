@@ -868,7 +868,7 @@ namespace Oxide.Plugins
                         {
                             Shortname = item.info.shortname,
                             Amount = item.amount,
-                            SkinId = item.skin,
+                            SkinId = (int)item.skin,
                             Name = item.info.displayName.english,
                             Timestamp = DateTime.Now
                         };
@@ -1031,7 +1031,7 @@ namespace Oxide.Plugins
                 foreach (var item in cupboard.inventory.itemList)
                 {
                     if (item != null && item.IsValid() && 
-                        item.info.shortname == itemInfo && item.skin == skinId)
+                        item.info.shortname == itemInfo && (int)item.skin == skinId)
                     {
                         totalAmount += item.amount;
                         itemsToRemove.Add(item);
