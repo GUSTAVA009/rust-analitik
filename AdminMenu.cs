@@ -748,7 +748,7 @@ namespace Oxide.Plugins
             int i = 0;
             foreach(var typeName in Enum.GetNames(typeof(ItemType)))
             {
-                ModernUI.ModernButton(container, UIElement, itemType.ToString() == typeName ? uiColors["tab_active"] : uiColors["tab_inactive"], msg(typeName.ToString(), playerId), 12, $"{0.015f + ((0.97f / 14f) * i) + 0.0025f} 0.82", $"{0.015f + ((0.97f / 14f) * (i + 1)) - 0.0025f} 0.86", itemType.ToString() == typeName ? "" : $"amui.switchelement give {typeName} 0");
+                ModernUI.ModernButton(container, UIElement, itemType.ToString() == typeName ? uiColors["tab_active"] : uiColors["tab_inactive"], uiColors["tab_hover"], msg(typeName.ToString(), playerId), 12, $"{0.015f + ((0.97f / 14f) * i) + 0.0025f} 0.82", $"{0.015f + ((0.97f / 14f) * (i + 1)) - 0.0025f} 0.86", itemType.ToString() == typeName ? "" : $"amui.switchelement give {typeName} 0", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                 i++;
             }
 
