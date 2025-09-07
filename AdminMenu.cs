@@ -277,7 +277,6 @@ namespace Oxide.Plugins
                             Color = color,
                             FontSize = size,
                             Text = text,
-                            PlaceholderText = placeholder,
                             NeedsKeyboard = true
                         },
                         new CuiRectTransformComponent { AnchorMin = aMin, AnchorMax = aMax }
