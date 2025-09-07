@@ -1043,7 +1043,9 @@ namespace Oxide.Plugins
                     return;
 
                 case "exit":
+                    Puts($"Exit command received from {player.displayName}");
                     DestroyUI(player);
+                    Puts($"UI destroyed for {player.displayName}");
                     return;              
             }
         }
