@@ -621,13 +621,13 @@ namespace Oxide.Plugins
             if (currentPage > 0)
             {
                 string prevCommand = commandTemplate.Replace("{0}", (currentPage - 1).ToString());
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], "◀ Previous", 12, "0.7 0.02", "0.85 0.04", prevCommand);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], "◀ Previous", 12, "0.7 0.02", "0.85 0.04", prevCommand, TextAnchor.MiddleCenter, uiColors["text_primary"]);
             }
 
             if (currentPage < totalPages - 1)
             {
                 string nextCommand = commandTemplate.Replace("{0}", (currentPage + 1).ToString());
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], "Next ▶", 12, "0.86 0.02", "0.98 0.04", nextCommand);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], "Next ▶", 12, "0.86 0.02", "0.98 0.04", nextCommand, TextAnchor.MiddleCenter, uiColors["text_primary"]);
             }
         }
 
@@ -1500,7 +1500,7 @@ namespace Oxide.Plugins
 
                 bool hasPermission = HasGroup(userId, groupId);
 
-                ModernUI.ModernButton(container, UIElement, hasPermission ? uiColors["tab_active"] : uiColors["button_secondary"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.togglegroup {userId} {userName.Replace(" ", "_-!!-_")} {page} {groupId.Replace(" ", "_-!!-_")} {!hasPermission}");
+                ModernUI.ModernButton(container, UIElement, hasPermission ? uiColors["tab_active"] : uiColors["button_secondary"], uiColors["button_hover"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.togglegroup {userId} {userName.Replace(" ", "_-!!-_")} {page} {groupId.Replace(" ", "_-!!-_")} {!hasPermission}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
                 ++count;
 
                 if (count >= 72)
