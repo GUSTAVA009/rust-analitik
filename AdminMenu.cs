@@ -471,8 +471,9 @@ namespace Oxide.Plugins
             // Content header
             ModernUI.Panel(container, UIMain, uiColors["content_header"], "0.27 0.85", "0.98 0.9");
             
-            // Add initial content - Commands menu
-            CreateMenuCommands(container, player, CommSub.Chat);
+            // Welcome message instead of default content
+            ModernUI.Label(container, UIMain, "Добро пожаловать в Admin Menu!", 24, "0.3 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
+            ModernUI.Label(container, UIMain, "Выберите раздел в боковом меню", 16, "0.3 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
         }
 
         private void CreateModernMenuButtons(CuiElementContainer container, MenuType menuType, string playerId)
@@ -557,9 +558,13 @@ namespace Oxide.Plugins
 
         private void CreateModernMenuPermissions(BasePlayer player, int page = 0, string filter = "")
         {
-            // Destroy old UI first
-            CuiHelper.DestroyUi(player, UIElement);
+            // Destroy ALL UI first
+            DestroyUI(player);
             
+            // Recreate the entire menu
+            CreateModernMainMenu(player);
+            
+            // Now add the permissions content
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Permissions, player.UserIDString);
             CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement permissions view 0");
@@ -928,12 +933,20 @@ namespace Oxide.Plugins
         // Overloaded method for command handlers that need to create new UI
         private void CreateMenuCommands(BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
         {
-            // Destroy old UI first
-            CuiHelper.DestroyUi(player, UIElement);
+            Puts($"CreateMenuCommands called for {player.displayName}, subType: {subType}");
             
+            // Destroy ALL UI first
+            DestroyUI(player);
+            Puts($"All UI destroyed for {player.displayName}");
+            
+            // Recreate the entire menu with commands content
+            CreateModernMainMenu(player);
+            
+            // Now add the commands content
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateMenuCommands(container, player, subType, page, itemType);
             CuiHelper.AddUi(player, container);
+            Puts($"New UI added for {player.displayName}");
         }
 
         #region UI Commands
@@ -946,6 +959,10 @@ namespace Oxide.Plugins
 
             if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
             
+            // Debug: Log the command
+            Puts($"UI Switch command: {string.Join(" ", arg.Args)} from player {player.displayName}");
+            Puts($"Args length: {arg.Args.Length}");
+
             if (selectData.ContainsKey(player.userID))
                 selectData.Remove(player.userID);
 
@@ -954,7 +971,12 @@ namespace Oxide.Plugins
                 page = arg.GetInt(2);
 
             if (arg.Args.Length == 0)
+            {
+                Puts("No arguments provided!");
                 return;
+            }
+
+            Puts($"Processing command: {arg.Args[0]}");
             switch (arg.Args[0])
             {
                 case "permissions":
@@ -1009,11 +1031,13 @@ namespace Oxide.Plugins
                     CreateMenuGroups(player, groupSub, page);
                     return;
                 case "commands":
+                    Puts($"Creating commands menu for {player.displayName}");
                     CommSub commSub = CommSub.Chat;
                     if (arg.Args.Length > 1)
                         commSub = ParseType<CommSub>(arg.Args[1]);
 
                     CreateMenuCommands(player, commSub, page);
+                    Puts($"Commands menu created for {player.displayName}");
                     return;
                 case "give":
                     ItemType itemType = ItemType.Weapon;
@@ -1027,7 +1051,9 @@ namespace Oxide.Plugins
                     return;
 
                 case "exit":
+                    Puts($"Exit command received from {player.displayName}");
                     DestroyUI(player);
+                    Puts($"UI destroyed for {player.displayName}");
                     return;              
             }
         }
@@ -1268,9 +1294,13 @@ namespace Oxide.Plugins
 
         private void CreateMenuGroups(BasePlayer player, GroupSub subType, int page = 0, string filter = "")
         {
-            // Destroy old UI first
-            CuiHelper.DestroyUi(player, UIElement);
+            // Destroy ALL UI first
+            DestroyUI(player);
             
+            // Recreate the entire menu
+            CreateModernMainMenu(player);
+            
+            // Now add the groups content
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Groups, player.UserIDString);
             CreateGroupTabs(container, player.UserIDString);
@@ -1343,9 +1373,13 @@ namespace Oxide.Plugins
 
         private void CreateMenuConvars(BasePlayer player, int page = 0, string filter = "")
         {
-            // Destroy old UI first
-            CuiHelper.DestroyUi(player, UIElement);
+            // Destroy ALL UI first
+            DestroyUI(player);
             
+            // Recreate the entire menu
+            CreateModernMainMenu(player);
+            
+            // Now add the convars content
             CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Convars, player.UserIDString);
             CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement convars view 0");
