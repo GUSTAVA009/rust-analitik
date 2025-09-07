@@ -1423,7 +1423,7 @@ namespace Oxide.Plugins
                 {
                     bool hasPermission = HasPermission(groupOrUserId, perm.Key, string.IsNullOrEmpty(playerName) ? true : false);
 
-                    ModernUI.ModernButton(container, UIElement, hasPermission ? uiColors["tab_active"] : uiColors["button_secondary"], perm.Key, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", string.IsNullOrEmpty(playerName) ? $"amui.togglepermission group {groupOrUserId.Replace(" ", "_-!!-_")} {page} {perm.Key} {!hasPermission} {filter}" : $"amui.togglepermission player {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {page} {perm.Key} {!hasPermission} {filter}");
+                    ModernUI.ModernButton(container, UIElement, hasPermission ? uiColors["tab_active"] : uiColors["button_secondary"], uiColors["button_hover"], perm.Key, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", string.IsNullOrEmpty(playerName) ? $"amui.togglepermission group {groupOrUserId.Replace(" ", "_-!!-_")} {page} {perm.Key} {!hasPermission} {filter}" : $"amui.togglepermission player {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {page} {perm.Key} {!hasPermission} {filter}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
                 }               
                 ++count;
 
