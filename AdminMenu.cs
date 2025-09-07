@@ -212,20 +212,17 @@ namespace Oxide.Plugins
 
             public static void ModernButton(CuiElementContainer container, string panel, string bgColor, string hoverColor, string text, int size, string aMin, string aMax, string command, TextAnchor align = TextAnchor.MiddleCenter, string textColor = "1 1 1 1")
             {
-                // Main button
+                // Main button with proper click handling
                 container.Add(new CuiButton
                 {
-                    Button = { Color = bgColor, Command = command, FadeIn = 0f },
+                    Button = { 
+                        Color = bgColor, 
+                        Command = command, 
+                        FadeIn = 0.1f,
+                        Close = "false"
+                    },
                     RectTransform = { AnchorMin = aMin, AnchorMax = aMax },
                     Text = { Text = text, FontSize = size, Align = align, Color = textColor }
-                },
-                panel);
-
-                // Subtle border effect
-                container.Add(new CuiPanel
-                {
-                    Image = { Color = "0 0 0 0.2" },
-                    RectTransform = { AnchorMin = aMin, AnchorMax = aMax }
                 },
                 panel);
             }
@@ -398,7 +395,6 @@ namespace Oxide.Plugins
             CreateModernContentArea(container, player);
             
             CuiHelper.AddUi(player, container);
-            CreateMenuCommands(player, CommSub.Chat);
         }
 
         private void CreateModernHeader(CuiElementContainer container, BasePlayer player)
@@ -416,6 +412,9 @@ namespace Oxide.Plugins
             
             // Close button
             ModernUI.ModernButton(container, UIMain, uiColors["danger"], uiColors["danger_hover"], "✕", 18, "0.95 0.92", "0.98 0.98", "amui.switchelement exit", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+            
+            // Test button
+            ModernUI.ModernButton(container, UIMain, uiColors["button_primary"], uiColors["button_hover"], "TEST", 14, "0.8 0.92", "0.94 0.98", "amui.testbutton", TextAnchor.MiddleCenter, uiColors["text_primary"]);
         }
 
         private void CreateModernSidebar(CuiElementContainer container, BasePlayer player)
@@ -474,6 +473,9 @@ namespace Oxide.Plugins
             
             // Content header
             ModernUI.Panel(container, UIMain, uiColors["content_header"], "0.27 0.85", "0.98 0.9");
+            
+            // Add initial content - Commands menu
+            CreateMenuCommands(container, player, CommSub.Chat);
         }
 
         private void CreateModernMenuButtons(CuiElementContainer container, MenuType menuType, string playerId)
@@ -702,9 +704,8 @@ namespace Oxide.Plugins
             CuiHelper.AddUi(player, container);
         }
 
-        private void CreateMenuCommands(BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
-        {             
-            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+        private void CreateMenuCommands(CuiElementContainer container, BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
+        {
             CreateModernMenuButtons(container, MenuType.Commands, player.UserIDString);
             CreateCommandTabs(container, player.UserIDString);
 
@@ -924,7 +925,25 @@ namespace Oxide.Plugins
 
         private enum PlayerAction { Ban, Kick, Kill, MuteChat, UnmuteChat, StripInventory, ResetBlueprints, GiveBlueprints, ResetMetabolism, Hurt25, Hurt50, Hurt75, Heal25, Heal50, Heal75, Heal100, TeleportSelfTo, Permissions }
 
+        // Overloaded method for command handlers that need to create new UI
+        private void CreateMenuCommands(BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
+        {
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateMenuCommands(container, player, subType, page, itemType);
+            CuiHelper.AddUi(player, container);
+        }
+
         #region UI Commands
+        [ConsoleCommand("amui.testbutton")]
+        private void ccmdTestButton(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null) return;
+            
+            Puts($"Test button clicked by {player.displayName}!");
+            player.ChatMessage("Test button works!");
+        }
+        
         [ConsoleCommand("amui.switchelement")]
         private void ccmdUISwitch(ConsoleSystem.Arg arg)
         {
@@ -933,6 +952,9 @@ namespace Oxide.Plugins
                 return;
 
             if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
+            
+            // Debug: Log the command
+            Puts($"UI Switch command: {string.Join(" ", arg.Args)} from player {player.displayName}");
 
             if (selectData.ContainsKey(player.userID))
                 selectData.Remove(player.userID);
