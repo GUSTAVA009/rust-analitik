@@ -250,12 +250,14 @@ namespace Oxide.Plugins
 
                 if (!string.IsNullOrEmpty(title))
                 {
-                    Label(container, panel, title, 16, $"{aMin.Split(' ')[0]} {aMax.Split(' ')[1] - 0.05f}", aMax, TextAnchor.UpperLeft, "0.8 0.8 0.8 1");
+                    float titleY = float.Parse(aMax.Split(' ')[1]) - 0.05f;
+                    Label(container, panel, title, 16, $"{aMin.Split(' ')[0]} {titleY}", aMax, TextAnchor.UpperLeft, "0.8 0.8 0.8 1");
                 }
 
                 if (!string.IsNullOrEmpty(content))
                 {
-                    Label(container, panel, content, 12, aMin, $"{aMax.Split(' ')[0]} {aMin.Split(' ')[1] + 0.05f}", TextAnchor.LowerLeft, "0.6 0.6 0.6 1");
+                    float contentY = float.Parse(aMin.Split(' ')[1]) + 0.05f;
+                    Label(container, panel, content, 12, aMin, $"{aMax.Split(' ')[0]} {contentY}", TextAnchor.LowerLeft, "0.6 0.6 0.6 1");
                 }
             }
            
@@ -700,6 +702,816 @@ namespace Oxide.Plugins
             CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.AddUi(player, container);
         }
+
+        private void CreateMenuCommands(BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
+        {             
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateModernMenuButtons(container, MenuType.Commands, player.UserIDString);
+            CreateCommandTabs(container, player.UserIDString);
+
+            if (subType == CommSub.Give)
+                CreateGiveMenu(container, itemType, page, player.UserIDString);
+            else if (subType == CommSub.Player)
+            {
+                SelectionData data;
+                if (selectData.TryGetValue(player.userID, out data) && !string.IsNullOrEmpty(data.target1_Id))                
+                    CreatePlayerMenu(container, data, player.UserIDString);                
+                else
+                {
+                    if (data == null)
+                    {
+                        data = selectData[player.userID] = new SelectionData()
+                        {
+                            menuType = MenuType.Commands,
+                            pageNum = 0,
+                            requireTarget1 = true,
+                            returnCommand = "amui.playerinfo",
+                            isGroup = false,
+                            selectDesc = msg("selectplayer", player.UserIDString),
+                            subType = "player",
+                            isOnline = true
+                        };
+                    }
+                    OpenSelectionMenu(player, SelectType.Player, data.isOnline ? covalence.Players.Connected.ToList() : storedData.GetOfflineList(), true);
+                    return;
+                }                
+            }
+            else CreateCommandEntry(container, subType, page, player.UserIDString);
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+
+        private void CreateGiveMenu(CuiElementContainer container, ItemType itemType, int page, string playerId)
+        {
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.005", "0.995 0.055");
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.815", "0.995 0.865");
+            int i = 0;
+            foreach(var typeName in Enum.GetNames(typeof(ItemType)))
+            {
+                ModernUI.ModernButton(container, UIElement, itemType.ToString() == typeName ? uiColors["tab_active"] : uiColors["tab_inactive"], msg(typeName.ToString(), playerId), 12, $"{0.015f + ((0.97f / 14f) * i) + 0.0025f} 0.82", $"{0.015f + ((0.97f / 14f) * (i + 1)) - 0.0025f} 0.86", itemType.ToString() == typeName ? "" : $"amui.switchelement give {typeName} 0");
+                i++;
+            }
+
+            int itemIndex = 60 * page;
+            int length = itemList[itemType].Count;
+            i = 6;
+
+            List<KeyValuePair<string, ItemDefinition>> items = itemList[itemType].OrderBy(x => x.Value.displayName.english).ToList();
+            for (int y = itemIndex; y < length; y++)
+            {
+                if (y - itemIndex >= 60)
+                    break;
+
+                KeyValuePair<string, ItemDefinition> item = items.ElementAt(y);
+                float[] position = CalculateModernButtonPos(i);
+                int[] amounts = configData.GiveAmounts[item.Value.category];
+
+                ModernUI.Label(container, UIElement, item.Key, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
+
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[0].ToString(), 10, $"{position[2]} {position[1]}", $"{position[2] + (0.158f * 0.24f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[0]} {(int)itemType} {page}");
+
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[1].ToString(), 10, $"{position[2] + (0.158f * 0.26f)} {position[1]}", $"{position[2] + (0.158f * 0.49f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[1]} {(int)itemType} {page}");
+
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[2].ToString(), 10, $"{position[2] + (0.158f * 0.51f)} {position[1]}", $"{position[2] + (0.158f * 0.74f)} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[2]} {(int)itemType} {page}");
+
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], amounts[3].ToString(), 10, $"{position[2] + (0.158f * 0.76f)} {position[1]}", $"{position[2] + 0.158f} {position[3]}", $"amui.giveitem {item.Value.displayName.english.Replace(" ", "<><>")} {item.Value.shortname} {amounts[3]} {(int)itemType} {page}");
+                i += 2;               
+            }
+
+            if (itemIndex > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", playerId), 10, "0.05 0.01", "0.15 0.05", $"amui.switchelement give {itemType.ToString()} {page - 1}");
+            if (itemIndex + 60 < itemList[itemType].Count)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", playerId), 10, "0.85 0.01", "0.95 0.05", $"amui.switchelement give {itemType.ToString()} {page + 1}");
+        }
+
+        private void CreateCommandEntry(CuiElementContainer container, CommSub subType, int page, string playerId)
+        {
+            ModernUI.Label(container, UIElement, msg("command", playerId), 16, "0.02 0.82", "0.15 0.87", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("description", playerId), 16, "0.15 0.82", "0.4 0.87", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("command", playerId), 16, "0.52 0.82", "0.65 0.87", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("description", playerId), 16, "0.65 0.82", "0.9 0.87", TextAnchor.MiddleLeft);
+                       
+            List<CommandEntry> commands = subType == CommSub.Chat ? configData.ChatCommands : configData.ConsoleCommands;
+
+            if (page > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", playerId), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement commands {subType.ToString()} {page - 1}");
+            if (commands.Count > 32 && commands.Count > (32 * page + 32))
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", playerId), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement commands {subType.ToString()} {page + 1}");
+
+            int count = 1;
+            for (int i = page * 32; i < commands.Count; i++)
+            {
+                CommandEntry entry = commands[i];
+                bool isDivisable = i % 2 == 0;
+                
+                ModernUI.Label(container, UIElement, entry.Name, 15, $"{(isDivisable ? 0.02f : 0.52f)} {0.82f - (0.05f * count)}", $"{(isDivisable ? 0.15f : 0.65f)} {0.87f - (0.05f * count)}", TextAnchor.MiddleLeft);
+                ModernUI.Label(container, UIElement, entry.Description, 15, $"{(isDivisable ? 0.15f : 0.65f)} {0.82f - (0.05f * count)}", $"{(isDivisable ? 0.4f : 0.9f)} {0.87f - (0.05f * count)}", TextAnchor.MiddleLeft);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("use", playerId), 15, $"{(isDivisable ? 0.41f : 0.91f)} {(0.82f - (0.05f * count)) + 0.005f}", $"{(isDivisable ? 0.49f : 0.99f)} {(0.87f - (0.05f * count)) - 0.005f}", $"amui.runcommand {subType} {i}");
+
+                if (!isDivisable)
+                    ++count;
+                if (count > 16)
+                    return;
+            }
+        }
+
+        private void CreatePlayerMenu(CuiElementContainer container, SelectionData data, string playerId)
+        {
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.01", "0.25 0.865");
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.255 0.01", "0.995 0.865");
+
+            IPlayer iPlayer = covalence.Players.FindPlayerById(data.target1_Id);
+            if (iPlayer == null)
+            {
+                ModernUI.Label(container, UIElement, $"No data found for {data.target1_Id}", 16, "0.01 0.815", "0.24 0.855", TextAnchor.MiddleLeft);
+                return;
+            }
+
+            ulong userId = ulong.Parse(iPlayer.Id);
+            BasePlayer player = BasePlayer.FindByID(userId);
+
+            ModernUI.Label(container, UIElement, $"Name: {iPlayer.Name}", 14, "0.01 0.825", "0.24 0.855", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, $"ID: {iPlayer.Id}", 14, "0.01 0.79", "0.24 0.82", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, $"Auth Level: {(DeveloperList.Contains(userId) ? "Developer" : (ServerUsers.Get(userId)?.group ?? ServerUsers.UserGroup.None).ToString())}", 14, "0.01 0.755", "0.24 0.785", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, $"Status: {(player != null && player.IsConnected ? "Online" : "Offline")}", 14, "0.01 0.72", "0.24 0.75", TextAnchor.MiddleLeft);
+
+            if (player != null)
+            {
+                // Player actions and info
+                ModernUI.Label(container, UIElement, $"Position: {player.ServerPosition}", 14, "0.01 0.65", "0.24 0.68", TextAnchor.MiddleLeft);
+                ModernUI.Label(container, UIElement, $"Health: {Math.Round(player.health, 2)}", 14, "0.01 0.58", "0.24 0.61", TextAnchor.MiddleLeft);
+                
+                // Action buttons
+                if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_KICKBAN_PERMISSION)))
+                {
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], msg("action.kick", playerId), 14, "0.26 0.825", "0.365 0.855", $"amui.kickbaninput {data.target1_Id} {PlayerAction.Kick}");
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], msg("action.ban", playerId), 14, "0.37 0.825", "0.475 0.855", $"amui.kickbaninput {data.target1_Id} {PlayerAction.Ban}");
+                }
+
+                if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_KILL_PERMISSION)))
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_danger"], msg("action.kill", playerId), 14, "0.26 0.785", "0.365 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.Kill}");
+
+                if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_STRIP_PERMISSION)))
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("action.stripinventory", playerId), 14, "0.37 0.785", "0.475 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.StripInventory}");
+
+                if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(playerId, PLAYER_HEAL_PERMISSION)))
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("action.resetmetabolism", playerId), 14, "0.48 0.785", "0.585 0.815", $"amui.performplayeraction {data.target1_Id} {PlayerAction.ResetMetabolism}");
+            }
+        }
+
+        private void OpenSelectionMenu(BasePlayer player, SelectType selectType, object objList, bool sortList = false)
+        {
+            SelectionData data = selectData[player.userID];            
+
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");            
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.925", "0.995 0.99");
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.87", "0.995 0.92");
+            CreateModernCharacterFilter(container, player.userID, data.character, string.Empty);
+            ModernUI.Label(container, UIElement, data.selectDesc, 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement {(data.menuType == MenuType.Commands ? "commands" : data.menuType == MenuType.Groups ? "groups" : "permissions")} {(data.subType.Equals("player") ? "chat" : data.subType)}");
+
+            List<IPlayer> playerList = null;
+            List<string> stringList = null;
+
+            switch (selectType)
+            {
+                case SelectType.Player:
+                    playerList = (List<IPlayer>)objList;                    
+                    if (!string.IsNullOrEmpty(data.character))
+                        playerList = playerList.Where(x => x.Name.ToLower().StartsWith(data.character.ToLower())).ToList();
+                    if (sortList)
+                        playerList = playerList.OrderBy(x => x.Name).ToList();
+                    break;
+                
+                case SelectType.String:
+                    stringList = (List<string>)objList;                   
+                    if (!string.IsNullOrEmpty(data.character))
+                        stringList = stringList.Where(x => x.StartsWith(data.character)).ToList();
+                    if (sortList)
+                        stringList.Sort();
+                    break;                
+            }  
+           
+            if (data.pageNum > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", "amui.makeselection pageDown");
+            if (selectType == SelectType.Player ? (playerList.Count > 72 && playerList.Count > (72 * data.pageNum + 72)) : stringList.Count > 72 && stringList.Count > (72 * data.pageNum + 72))
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", "amui.makeselection pageUp");
+
+            int count = 0;
+            for (int i = data.pageNum * 72; i < (selectType == SelectType.Player ? playerList.Count : stringList.Count); i++)
+            {
+                float[] position = CalculateModernButtonPos(count);
+
+                if (selectType == SelectType.Player)
+                {
+                    IPlayer target = playerList[i];
+                    string userName = StripTags(target.Name);
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], $"{userName} <size=8>({target.Id})</size>", 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.makeselection target {target.Id} {userName.Replace(" ", "_-!!-_")}");
+                }
+                else
+                {
+                    string button = stringList[i];
+                    ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], button, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.makeselection target {button.Replace(" ", "_-!!-_")}");
+                }
+                ++count;
+                if (count >= 72)
+                    break;
+            }
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+
+        private enum PlayerAction { Ban, Kick, Kill, MuteChat, UnmuteChat, StripInventory, ResetBlueprints, GiveBlueprints, ResetMetabolism, Hurt25, Hurt50, Hurt75, Heal25, Heal50, Heal75, Heal100, TeleportSelfTo, Permissions }
+
+        #region UI Commands
+        [ConsoleCommand("amui.switchelement")]
+        private void ccmdUISwitch(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null)
+                return;
+
+            if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
+
+            if (selectData.ContainsKey(player.userID))
+                selectData.Remove(player.userID);
+
+            int page = 0;
+            if (arg.Args.Length > 2)
+                page = arg.GetInt(2);
+
+            switch (arg.Args[0])
+            {
+                case "permissions":
+                    PermSub permSub = PermSub.View;                    
+                    if (arg.Args.Length > 1)
+                        permSub = ParseType<PermSub>(arg.Args[1]);
+
+                    switch (permSub)
+                    {
+                        case PermSub.View:
+                            CreateModernMenuPermissions(player, page, arg.Args.Length > 3 ? arg.GetString(3) : "");
+                            return;
+                        case PermSub.Player:
+                            if (arg.Args.Length >= 5)
+                                OpenPermissionMenu(player, arg.GetString(3), arg.GetString(4).Replace("_-!!-_", " "), string.Format(msg("togglepermplayer", player.UserIDString), arg.GetString(4).Replace("_-!!-_", " ")), arg.GetInt(2), arg.Args.Length > 5 ? arg.GetString(5) : "");
+                            else rust.RunClientCommand(player, "amui.selectforpermission", false);
+                            return;
+                        case PermSub.Group:
+                            if (arg.Args.Length >= 4)
+                                OpenPermissionMenu(player, arg.GetString(3).Replace("_-!!-_", " "), string.Empty, string.Format(msg("togglepermgroup", player.UserIDString), arg.GetString(3).Replace("_-!!-_", " ")), arg.GetInt(2), arg.Args.Length > 4 ? arg.GetString(4) : "");
+                            else rust.RunClientCommand(player, "amui.selectforpermission", true);
+                            return; 
+                    }
+                    return;
+                case "groups":
+                    GroupSub groupSub = GroupSub.View;
+                    if (arg.Args.Length > 1)
+                        groupSub = ParseType<GroupSub>(arg.Args[1]);
+
+                    switch (groupSub)
+                    {
+                        case GroupSub.View:
+                            if (arg.Args.Length > 2)
+                            {
+                                OpenGroupViewMenu(player, arg.GetString(3), page);
+                                return;
+                            }
+                            else break;
+                        case GroupSub.UserGroups:
+                            if (arg.Args.Length == 5)
+                                OpenGroupMenu(player, arg.GetString(3), arg.GetString(4).Replace("_-!!-_", " "), string.Format(msg("togglegroupplayer", player.UserIDString), arg.GetString(4).Replace("_-!!-_", " ")), arg.GetInt(2));
+                            else rust.RunClientCommand(player, "amui.selectforgroup");
+                            return;
+                        case GroupSub.AddGroup:
+                            break;
+                        case GroupSub.CloneGroup:
+                            break;
+                        case GroupSub.RemoveGroup:
+                            rust.RunClientCommand(player, "amui.selectremovegroup");
+                            return;                        
+                    }
+                    CreateMenuGroups(player, groupSub, page);
+                    return;
+                case "commands":
+                    CommSub commSub = CommSub.Chat;
+                    if (arg.Args.Length > 1)
+                        commSub = ParseType<CommSub>(arg.Args[1]);
+
+                    CreateMenuCommands(player, commSub, page);
+                    return;
+                case "give":
+                    ItemType itemType = ItemType.Weapon;
+                    if (arg.Args.Length > 1)
+                        itemType = ParseType<ItemType>(arg.Args[1]);
+
+                    CreateMenuCommands(player, CommSub.Give, page, itemType);
+                    return;
+                case "convars":
+                    CreateMenuConvars(player, page, arg.Args.Length > 3 ? arg.GetString(3) : "");
+                    return;
+
+                case "exit":
+                    DestroyUI(player);
+                    return;              
+            }
+        }
+
+        [ConsoleCommand("amui.runcommand")]
+        private void ccmdUIRunCommand(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null)
+                return;
+
+            if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
+
+            CommSub subType = ParseType<CommSub>(arg.Args[0]);
+            int listNum = arg.GetInt(1);
+
+            CommandEntry entry = (subType == CommSub.Chat ? configData.ChatCommands : configData.ConsoleCommands)[listNum];
+
+            SelectionData data;
+            if (!selectData.TryGetValue(player.userID, out data))
+            {
+                selectData.Add(player.userID, new SelectionData
+                {
+                    listNum = arg.GetInt(1),
+                    menuType = MenuType.Commands,
+                    pageNum = 0,
+                    requireTarget1 = entry.Command.Contains("{target1_name}") || entry.Command.Contains("{target1_id}"),
+                    requireTarget2 = entry.Command.Contains("{target2_name}") || entry.Command.Contains("{target2_id}"),
+                    returnCommand = $"amui.runcommand",
+                    selectDesc = string.Empty,
+                    subType = arg.Args[0],
+                    isOnline = true,
+                });
+                data = selectData[player.userID];
+            }
+
+            data.selectDesc = string.IsNullOrEmpty(data.target1_Id) ? msg("selectplayer", player.UserIDString) : msg("selecttarget", player.UserIDString);
+
+            string command = string.Empty;
+
+            if (data.requireTarget2)
+            {
+                if (!string.IsNullOrEmpty(data.target1_Id) && !string.IsNullOrEmpty(data.target1_Name) && !string.IsNullOrEmpty(data.target2_Id) && !string.IsNullOrEmpty(data.target2_Name))
+                    command = entry.Command
+                        .Replace("{target1_name}", $"\"{data.target1_Name}\"")
+                        .Replace("{target1_id}", data.target1_Id)
+                        .Replace("{target2_name}", $"\"{data.target2_Name}\"")
+                        .Replace("{target2_id}", data.target2_Id);                
+            }
+            else if (data.requireTarget1)
+            {
+                if (!string.IsNullOrEmpty(data.target1_Id) && !string.IsNullOrEmpty(data.target1_Name))
+                    command = entry.Command
+                        .Replace("{target1_name}", $"\"{data.target1_Name}\"")
+                        .Replace("{target1_id}", data.target1_Id);                
+            }
+            else command = entry.Command;
+
+            if (!string.IsNullOrEmpty(command))
+            {
+                if (subType == CommSub.Console)
+                    rust.RunServerCommand(command);
+                else rust.RunClientCommand(player, "chat.say", command);
+
+                CreateModernPopup(player, string.Format(msg("commandrun", player.UserIDString), command), "success");
+
+                selectData.Remove(player.userID);
+
+                if (entry.CloseOnRun)
+                    DestroyUI(player);
+                else CreateMenuCommands(player, subType, 0);
+            }
+            else OpenSelectionMenu(player, SelectType.Player, data.isOnline ? covalence.Players.Connected.ToList() : storedData.GetOfflineList(), true);            
+        }
+
+        [ConsoleCommand("amui.giveitem")]
+        private void ccmdGiveItem(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null)
+                return;
+
+            if (!HasPermission(player.UserIDString, GIVE_PERMISSION))
+                return;
+
+            string itemName = arg.GetString(0);
+            string itemShortName = arg.GetString(1);
+            int amount = arg.GetInt(2);
+            ItemType itemType = (ItemType)arg.GetInt(3);
+            int page = arg.GetInt(4);
+
+            if (arg.Args.Length <= 5 && !permission.UserHasPermission(player.UserIDString, GIVE_SELF_PERMISSION))
+            {
+                SelectionData data;
+                if (!selectData.TryGetValue(player.userID, out data))
+                {
+                    selectData.Add(player.userID, new SelectionData
+                    {
+                        listNum = arg.GetInt(1),
+                        menuType = MenuType.Commands,
+                        pageNum = 0,
+                        requireTarget1 = true,
+                        returnCommand = $"amui.giveitem {itemName} {itemShortName} {amount} {(int)itemType} {page}",
+                        isGroup = false,
+                        selectDesc = string.Format(msg("giveitem", player.UserIDString), amount, itemName.Replace("<><>", " ")),
+                        subType = "give",
+                        isOnline = true,
+                        forceOnline = true
+                    });
+                    data = selectData[player.userID];
+                }
+
+                OpenSelectionMenu(player, SelectType.Player, covalence.Players.Connected.ToList(), true);
+            }
+            else
+            {
+                string targetId = arg.GetString(5);
+
+                BasePlayer targetPlayer = permission.UserHasPermission(player.UserIDString, GIVE_SELF_PERMISSION) ? player : BasePlayer.FindByID(ulong.Parse(targetId));
+                if (targetPlayer != null && targetPlayer.IsConnected)
+                {
+                    Item item = ItemManager.CreateByName(itemShortName, amount, 0);
+                    targetPlayer.GiveItem(item, BaseEntity.GiveItemReason.PickedUp);
+                    CreateModernPopup(player, string.Format(msg("gaveitem", player.UserIDString), amount, itemName.Replace("<><>", " "), targetPlayer.displayName), "success");
+                }
+                else CreateModernPopup(player, msg("noplayer", player.UserIDString), "error");
+
+                selectData.Remove(player.userID);
+                CreateMenuCommands(player, CommSub.Give, page, itemType);
+            }
+        }
+
+        [ConsoleCommand("amui.playerinfo")]
+        private void ccmdPlayerInfo(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null)
+                return;
+
+            if (!HasPermission(player.UserIDString, PLAYER_PERMISSION))
+                return;
+
+            CreateMenuCommands(player, CommSub.Player);
+        }
+
+        [ConsoleCommand("amui.makeselection")]
+        private void ccmdMakeSelection(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null)
+                return;
+
+            if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
+
+            SelectionData data = selectData[player.userID];
+
+            switch (arg.Args[0])
+            {
+                case "target":
+                    if (string.IsNullOrEmpty(data.target1_Id))
+                    {
+                        data.target1_Id = arg.Args[1].Replace("_-!!-_", " ");                        
+                        data.target1_Name = arg.Args.Length == 3 ? arg.Args[2].Replace("_-!!-_", " ") : string.Empty;
+                    }
+                    else
+                    {
+                        data.target2_Id = arg.Args[1].Replace("_-!!-_", " ");                        
+                        data.target2_Name = arg.Args.Length == 3 ? arg.Args[2].Replace("_-!!-_", " ") : string.Empty;
+                    }
+                    break;
+                case "pageUp":
+                    ++data.pageNum;
+                    break;
+                case "pageDown":
+                    --data.pageNum;
+                    break;
+                case "online":
+                    data.isOnline = true;
+                    break;
+                case "offline":
+                    data.isOnline = false;
+                    break;                
+            }
+
+            if (data.returnCommand.StartsWith("amui.giveitem"))
+            {                
+                rust.RunClientCommand(player, $"{data.returnCommand} {data.target1_Id}");
+            }
+            else
+            {
+                switch (data.returnCommand)
+                {
+                    case "amui.runcommand":
+                        rust.RunClientCommand(player, "amui.runcommand", data.subType, data.listNum);
+                        break;
+                    case "amui.selectforpermission":
+                        rust.RunClientCommand(player, "amui.selectforpermission", data.isGroup);
+                        break;
+                    default:
+                        rust.RunClientCommand(player, data.returnCommand);
+                        break;
+                }
+            }
+        }
+
+        [ConsoleCommand("amui.filterchar")]
+        private void ccmdFilterChar(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Connection.player as BasePlayer;
+            if (player == null)
+                return;
+
+            if (!HasPermission(player.UserIDString, USE_PERMISSION)) return;
+
+            SelectionData data = selectData[player.userID];
+
+            data.character = arg.GetString(0) == "~" ? string.Empty : arg.GetString(0);
+
+            switch (data.returnCommand)
+            {
+                case "amui.runcommand":
+                    rust.RunClientCommand(player, data.returnCommand, data.subType, data.listNum);
+                    break;
+                case "amui.selectforpermission":
+                    rust.RunClientCommand(player, data.returnCommand, data.isGroup);
+                    break;
+                case "amui.selectremovegroup":
+                    rust.RunClientCommand(player, data.returnCommand);
+                    break;
+                case "amui.selectforgroup":
+                    rust.RunClientCommand(player, data.returnCommand);
+                    break;
+                default:
+                    rust.RunClientCommand(player, data.returnCommand);
+                    break;
+            }
+        }
+
+        private void CreateMenuGroups(BasePlayer player, GroupSub subType, int page = 0, string filter = "")
+        {
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateModernMenuButtons(container, MenuType.Groups, player.UserIDString);
+            CreateGroupTabs(container, player.UserIDString);
+
+            switch (subType)
+            {
+                case GroupSub.View:
+                    List<string> groupList = GetGroups();
+                    groupList.Sort();
+
+                    if (page > 0)
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1}");
+                    if (groupList.Count > 72 && groupList.Count > (72 * page + 72))
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1}");
+
+                    int count = 0;
+                    for (int i = page * 72; i < groupList.Count; i++)
+                    {
+                        string groupId = groupList[i];
+                        float[] position = CalculateModernButtonPos(count);
+
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.switchelement groups view 0 {groupId}");
+                        ++count;
+
+                        if (count >= 72)
+                            break;
+                    }
+                    break;
+                case GroupSub.UserGroups:
+                    break;                
+                case GroupSub.AddGroup:
+                    {
+                        GroupData groupData;
+                        if (!groupCreator.TryGetValue(player.userID, out groupData))
+                        {
+                            groupCreator.Add(player.userID, new GroupData());
+                            groupData = groupCreator[player.userID];
+                        }
+
+                        ModernUI.Label(container, UIElement, msg("inputhelper", player.UserIDString), 18, "0.1 0.75", "0.9 0.85");
+
+                        ModernUI.Label(container, UIElement, msg("groupname", player.UserIDString), 16, "0.1 0.62", "0.3 0.7", TextAnchor.MiddleLeft);
+                        ModernUI.Label(container, UIElement, msg("uiwarning", player.UserIDString), 8, "0.1 0.15", "0.9 0.2", TextAnchor.MiddleLeft);
+                        ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.3 0.63", "0.9 0.69");
+                        if (string.IsNullOrEmpty(groupData.name))
+                            ModernUI.Input(container, UIElement, "", groupData.name, 16, "amui.registergroup input name", "0.32 0.63", "0.9 0.69");
+                        else ModernUI.Label(container, UIElement, groupData.name, 16, "0.32 0.63", "0.9 0.69", TextAnchor.MiddleLeft);
+
+                        ModernUI.Label(container, UIElement, msg("grouptitle", player.UserIDString), 16, "0.1 0.54", "0.3 0.62", TextAnchor.MiddleLeft);
+                        ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.3 0.55", "0.9 0.61");
+                        if (string.IsNullOrEmpty(groupData.title))
+                            ModernUI.Input(container, UIElement, "", groupData.title, 16, "amui.registergroup input title", "0.32 0.55", "0.9 0.61");
+                        else ModernUI.Label(container, UIElement, groupData.title, 16, "0.32 0.55", "0.9 0.61", TextAnchor.MiddleLeft);
+
+                        ModernUI.Label(container, UIElement, msg("grouprank", player.UserIDString), 16, "0.1 0.46", "0.3 0.54", TextAnchor.MiddleLeft);
+                        ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.3 0.47", "0.9 0.53");
+                        if (string.IsNullOrEmpty(groupData.rank))
+                            ModernUI.Input(container, UIElement, "", groupData.rank, 16, "amui.registergroup input rank", "0.32 0.47", "0.9 0.53");
+                        else ModernUI.Label(container, UIElement, groupData.rank, 16, "0.32 0.47", "0.9 0.53", TextAnchor.MiddleLeft);
+
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], msg("reset", player.UserIDString), 16, "0.345 0.38", "0.495 0.44", "amui.registergroup reset");
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("create", player.UserIDString), 16, "0.505 0.38", "0.655 0.44", "amui.registergroup create");
+                        break;
+                    }
+            }
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+
+        private void CreateMenuConvars(BasePlayer player, int page = 0, string filter = "")
+        {
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateModernMenuButtons(container, MenuType.Convars, player.UserIDString);
+            CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement convars view 0");
+
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.01", "0.995 0.92");
+
+            const int NUM_PER_PAGE = 34;
+            const float Y_BOTTOM = 0.865f;
+            const float X_LEFT_START = 0.01f;
+            const float Y_SIZE = 0.05f;
+
+            int row = 1;
+            int count = 0;
+
+            List<ConsoleSystem.Command> convars = new List<ConsoleSystem.Command>(ConsoleGen.All.Where(x => x.ServerAdmin && x.Variable));
+            
+            if (!string.IsNullOrEmpty(filter) && filter != "~")
+                convars = convars.Where(x => x.FullName.StartsWith(filter, StringComparison.OrdinalIgnoreCase) || x.Name.StartsWith(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            convars.OrderBy(x => x.FullName);
+
+            if (page > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}");
+            if (convars.Count > (NUM_PER_PAGE * page + NUM_PER_PAGE))
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}");
+
+            for (int i = page * NUM_PER_PAGE; i < Mathf.Min((page + 1) * NUM_PER_PAGE, convars.Count); i++)
+            {
+                ConsoleSystem.Command entry = convars[i];
+
+                bool isDivisable = count % 2 != 0;
+
+                string label = entry.FullName;
+
+                Vector2 labelMin = new Vector2(X_LEFT_START + (isDivisable ? 0.5f : 0f), Y_BOTTOM - (Y_SIZE * row));
+                Vector2 labelMax = new Vector2(labelMin.x + 0.3f, labelMin.y + Y_SIZE);
+
+                ModernUI.Label(container, UIElement, entry.FullName, 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMax.y}", TextAnchor.MiddleLeft);
+
+                if (!string.IsNullOrEmpty(entry.Description))
+                    ModernUI.Label(container, UIElement, $"<size=8><color=#808080>({entry.Description})</color></size>", 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMin.y + 0.02f}", TextAnchor.LowerLeft);
+
+                Vector2 inputMin = new Vector2(labelMax.x + 0.005f, labelMin.y + 0.005f);
+                Vector2 inputMax = new Vector2(labelMax.x + 0.18f, labelMax.y - 0.005f);
+
+                ModernUI.Panel(container, UIElement, uiColors["button_primary"], $"{inputMin.x} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
+                ModernUI.Input(container, UIElement, "1 1 1 1", entry.String, 12, 
+                    $"amui.setconvar {entry.FullName} {page} {(string.IsNullOrEmpty(filter) ? "!!" : filter)} ", $"{inputMin.x + 0.005f} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
+
+                if (isDivisable)
+                    ++row;
+
+                count++;
+            }
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+
+        private void OpenPermissionMenu(BasePlayer player, string groupOrUserId, string playerName, string description, int page, string filter)
+        {
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.925", "0.995 0.99");
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.87", "0.995 0.92");
+
+            ModernUI.Label(container, UIElement, description, 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
+
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement permissions view");
+
+            CreateModernCharacterFilter(container, player.userID, filter, string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group 0 {groupOrUserId.Replace(" ", "_-!!-_")}" : $"amui.switchelement permissions player 0 {groupOrUserId} {playerName.Replace(" ", "_-!!-_")}");
+
+            List<KeyValuePair<string, bool>> permList = new List<KeyValuePair<string, bool>>(permissionList);
+            if (!string.IsNullOrEmpty(filter) && filter != "~")
+                permList = permList.Where(x => x.Key.StartsWith(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+            permList.OrderBy(x => x.Key);
+
+            if (page > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group {page - 1} {groupOrUserId.Replace(" ", "_-!!-_")} {filter}" : $"amui.switchelement permissions player {page - 1} {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {filter}");
+            if (permList.Count > 72 && permList.Count > (72 * page + 72))
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", string.IsNullOrEmpty(playerName) ? $"amui.switchelement permissions group {page + 1} {groupOrUserId.Replace(" ", "_-!!-_")} {filter}" : $"amui.switchelement permissions player {page + 1} {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {filter}");            
+
+            int count = 0;
+            for (int i = page * 72; i < permList.Count; i++)
+            {
+                KeyValuePair<string, bool> perm = permList[i];
+                float[] position = CalculateModernButtonPos(count);
+              
+                if (!perm.Value)
+                {
+                    ModernUI.Panel(container, UIElement, uiColors["button_secondary"], $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
+                    ModernUI.Label(container, UIElement, $"{perm.Key}", 12, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");                    
+                }
+                else
+                {
+                    bool hasPermission = HasPermission(groupOrUserId, perm.Key, string.IsNullOrEmpty(playerName) ? true : false);
+
+                    ModernUI.ModernButton(container, UIElement, hasPermission ? uiColors["tab_active"] : uiColors["button_secondary"], perm.Key, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", string.IsNullOrEmpty(playerName) ? $"amui.togglepermission group {groupOrUserId.Replace(" ", "_-!!-_")} {page} {perm.Key} {!hasPermission} {filter}" : $"amui.togglepermission player {groupOrUserId} {playerName.Replace(" ", "_-!!-_")} {page} {perm.Key} {!hasPermission} {filter}");
+                }               
+                ++count;
+
+                if (count >= 72)
+                    break;
+            }
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+
+        private void OpenGroupViewMenu(BasePlayer player, string groupName, int page)
+        {
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.925", "0.995 0.99");
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.87", "0.995 0.92");
+
+            ModernUI.Label(container, UIElement, string.Format(msg("groupview", player.UserIDString), groupName), 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
+
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement groups view");
+
+            List<KeyValuePair<string, string>> users = GetUsersInGroupFormatted(groupName);
+            users.OrderBy(x => x.Value);
+
+            if (page > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1} {groupName}");
+            if (users.Count > 72 && users.Count > (72 * page + 72))
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1} {groupName}");
+
+            int count = 0;
+            for (int i = page * 72; i < users.Count; i++)
+            {
+                float[] position = CalculateModernButtonPos(count);
+
+                string text = users[i].Value == "Unnamed" ? users[i].Key : users[i].Value;
+
+                ModernUI.Panel(container, UIElement, uiColors["button_secondary"], $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
+                ModernUI.Label(container, UIElement, text, 12, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}");
+                ModernUI.ModernButton(container, UIElement, uiColors["danger"], "X", 8, $"{position[2] - 0.01f} {position[1] + 0.04f}", $"{position[2]} {position[3]}", $"amui.removefromgroup {groupName} {users[i].Key} {page}");
+                ++count;
+
+                if (count >= 72)
+                    break;
+            }
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+
+        private void OpenGroupMenu(BasePlayer player, string userId, string userName, string description, int page)
+        {
+            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.925", "0.995 0.99");
+            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.87", "0.995 0.92");
+
+            ModernUI.Label(container, UIElement, description, 24, "0.02 0.93", "0.8 0.985", TextAnchor.MiddleLeft);
+
+            ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("return", player.UserIDString), 16, "0.855 0.93", "0.985 0.985", $"amui.switchelement groups view");
+            List<string> groupList = GetGroups();
+            groupList.Sort();
+
+            if (page > 0)
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups usergroups {page - 1} {userId} {userName.Replace(" ", "_-!!-_")}");
+            if (groupList.Count > 72 && groupList.Count > (72 * page + 72))
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups usergroups {page + 1} {userId} {userName.Replace(" ", "_-!!-_")}");
+
+            int count = 0;
+            for (int i = page * 72; i < groupList.Count; i++)
+            {
+                string groupId = groupList[i];
+                float[] position = CalculateModernButtonPos(count);
+
+                bool hasPermission = HasGroup(userId, groupId);
+
+                ModernUI.ModernButton(container, UIElement, hasPermission ? uiColors["tab_active"] : uiColors["button_secondary"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.togglegroup {userId} {userName.Replace(" ", "_-!!-_")} {page} {groupId.Replace(" ", "_-!!-_")} {!hasPermission}");
+                ++count;
+
+                if (count >= 72)
+                    break;
+            }
+
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.AddUi(player, container);
+        }
+        #endregion
         #endregion
 
         #region UI Functions
