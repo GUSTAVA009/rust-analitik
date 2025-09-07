@@ -70,12 +70,14 @@ namespace Oxide.Plugins
         #region Fields
         private readonly Dictionary<ulong, BuildingPrivlidge> playerCupboards = new Dictionary<ulong, BuildingPrivlidge>();
         private readonly Dictionary<ulong, DateTime> lastUIUpdate = new Dictionary<ulong, DateTime>();
+        private readonly Dictionary<string, Dictionary<string, int>> savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
         #endregion
 
         #region Hooks
         void Init()
         {
             LoadDefaultMessages();
+            LoadStackData();
         }
 
         void OnServerInitialized()
@@ -121,6 +123,43 @@ namespace Oxide.Plugins
                 PrintError($"Error in OnMaxStackable: {ex.Message}");
             }
             return null;
+        }
+
+        // Hook to preserve stack sizes when items are added to cupboard
+        void OnItemAddedToContainer(ItemContainer container, Item item)
+        {
+            try
+            {
+                if (container?.entityOwner is BuildingPrivlidge cupboard && item != null)
+                {
+                    // Check if we have a saved stack size for this item type in this cupboard
+                    var cupboardId = cupboard.net.ID.ToString();
+                    var itemShortname = item.info.shortname;
+                    
+                    if (savedStackSizes.ContainsKey(cupboardId) && 
+                        savedStackSizes[cupboardId].ContainsKey(itemShortname))
+                    {
+                        var savedStackSize = savedStackSizes[cupboardId][itemShortname];
+                        
+                        // Only apply if the saved size is different from current and is valid
+                        if (item.amount != savedStackSize && config.AvailableStackSizes.Contains(savedStackSize))
+                        {
+                            item.amount = savedStackSize;
+                            item.MarkDirty();
+                            container.MarkDirty();
+                            
+                            if (config.EnableLogging)
+                            {
+                                Puts($"Restored stack size {savedStackSize} for {itemShortname} in cupboard {cupboardId}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error in OnItemAddedToContainer: {ex.Message}");
+            }
         }
 
         // Enhanced cupboard access hook with admin-only check
@@ -581,6 +620,9 @@ namespace Oxide.Plugins
                 // Update cupboard inventory
                 cupboard.inventory.MarkDirty();
 
+                // Save stack size to data
+                SaveStackSize(cupboard.net.ID.ToString(), item.info.shortname, newAmount);
+
                 // Update UI
                 ShowStackEditor(player, cupboard);
 
@@ -695,6 +737,85 @@ namespace Oxide.Plugins
                 return false;
             }
         }
+
+        // Save stack size data to file
+        private void SaveStackSize(string cupboardId, string itemShortname, int stackSize)
+        {
+            try
+            {
+                if (!savedStackSizes.ContainsKey(cupboardId))
+                {
+                    savedStackSizes[cupboardId] = new Dictionary<string, int>();
+                }
+
+                savedStackSizes[cupboardId][itemShortname] = stackSize;
+                SaveStackData();
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error saving stack size: {ex.Message}");
+            }
+        }
+
+        // Load stack size data from file
+        private void LoadStackData()
+        {
+            try
+            {
+                var dataFile = Interface.Oxide.DataFileSystem.GetFile("CupboardStackUI/StackSizes");
+                if (dataFile.Exists())
+                {
+                    savedStackSizes = dataFile.ReadObject<Dictionary<string, Dictionary<string, int>>>();
+                    if (savedStackSizes == null)
+                    {
+                        savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
+                    }
+                    Puts($"Loaded {savedStackSizes.Count} cupboard stack configurations");
+                }
+                else
+                {
+                    savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
+                    SaveStackData(); // Create initial file
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error loading stack data: {ex.Message}");
+                savedStackSizes = new Dictionary<string, Dictionary<string, int>>();
+            }
+        }
+
+        // Save stack size data to file
+        private void SaveStackData()
+        {
+            try
+            {
+                var dataFile = Interface.Oxide.DataFileSystem.GetFile("CupboardStackUI/StackSizes");
+                dataFile.WriteObject(savedStackSizes);
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error saving stack data: {ex.Message}");
+            }
+        }
+
+        // Get saved stack size for item in cupboard
+        private int? GetSavedStackSize(string cupboardId, string itemShortname)
+        {
+            try
+            {
+                if (savedStackSizes.ContainsKey(cupboardId) && 
+                    savedStackSizes[cupboardId].ContainsKey(itemShortname))
+                {
+                    return savedStackSizes[cupboardId][itemShortname];
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintError($"Error getting saved stack size: {ex.Message}");
+            }
+            return null;
+        }
         #endregion
 
         #region Cleanup
@@ -702,6 +823,9 @@ namespace Oxide.Plugins
         {
             try
             {
+                // Save stack data before unloading
+                SaveStackData();
+                
                 // Clean up UI for all players
                 foreach (var player in BasePlayer.activePlayerList)
                 {
