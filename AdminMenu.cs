@@ -1303,24 +1303,20 @@ namespace Oxide.Plugins
 
         private void CreateMenuGroups(BasePlayer player, GroupSub subType, int page = 0, string filter = "")
         {
+            Puts($"CreateMenuGroups called for {player.displayName}, subType: {subType}, page: {page}, filter: {filter}");
+            
             // Destroy ALL UI first
             DestroyUI(player);
+            Puts($"All UI destroyed for {player.displayName}");
             
-            // Create the entire menu with groups content
-            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            // Create the entire menu
+            CreateModernMainMenu(player);
+            Puts($"Main menu created for {player.displayName}");
             
-            // Create header
-            CreateModernHeader(container, player);
-            
-            // Create sidebar
-            CreateModernSidebar(container, player);
-            
-            // Create content area
-            CreateModernContentArea(container, player);
-            
-            // Now add the groups content
-            CreateModernMenuButtons(container, MenuType.Groups, player.UserIDString);
-            CreateGroupTabs(container, player.UserIDString);
+            // Now add the groups content in a separate container
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateModernMenuButtons(contentContainer, MenuType.Groups, player.UserIDString);
+            CreateGroupTabs(contentContainer, player.UserIDString);
 
             switch (subType)
             {
@@ -1384,32 +1380,28 @@ namespace Oxide.Plugins
                     }
             }
 
-            CuiHelper.DestroyUi(player, UIElement);
-            CuiHelper.AddUi(player, container);
+            CuiHelper.AddUi(player, contentContainer);
+            Puts($"Groups content added for {player.displayName}");
         }
 
         private void CreateMenuConvars(BasePlayer player, int page = 0, string filter = "")
         {
+            Puts($"CreateMenuConvars called for {player.displayName}, page: {page}, filter: {filter}");
+            
             // Destroy ALL UI first
             DestroyUI(player);
+            Puts($"All UI destroyed for {player.displayName}");
             
-            // Create the entire menu with convars content
-            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            // Create the entire menu
+            CreateModernMainMenu(player);
+            Puts($"Main menu created for {player.displayName}");
             
-            // Create header
-            CreateModernHeader(container, player);
-            
-            // Create sidebar
-            CreateModernSidebar(container, player);
-            
-            // Create content area
-            CreateModernContentArea(container, player);
-            
-            // Now add the convars content
-            CreateModernMenuButtons(container, MenuType.Convars, player.UserIDString);
-            CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement convars view 0");
+            // Now add the convars content in a separate container
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateModernMenuButtons(contentContainer, MenuType.Convars, player.UserIDString);
+            CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement convars view 0");
 
-            ModernUI.Panel(container, UIMain, uiColors["bg3"], "0.27 0.1", "0.98 0.9");
+            ModernUI.Panel(contentContainer, UIMain, uiColors["bg3"], "0.27 0.1", "0.98 0.9");
 
             const int NUM_PER_PAGE = 34;
             const float Y_BOTTOM = 0.865f;
@@ -1427,9 +1419,9 @@ namespace Oxide.Plugins
             convars.OrderBy(x => x.FullName);
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (convars.Count > (NUM_PER_PAGE * page + NUM_PER_PAGE))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             for (int i = page * NUM_PER_PAGE; i < Mathf.Min((page + 1) * NUM_PER_PAGE, convars.Count); i++)
             {
@@ -1442,16 +1434,16 @@ namespace Oxide.Plugins
                 Vector2 labelMin = new Vector2(X_LEFT_START + (isDivisable ? 0.5f : 0f), Y_BOTTOM - (Y_SIZE * row));
                 Vector2 labelMax = new Vector2(labelMin.x + 0.3f, labelMin.y + Y_SIZE);
 
-                ModernUI.Label(container, UIElement, entry.FullName, 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMax.y}", TextAnchor.MiddleLeft);
+                ModernUI.Label(contentContainer, UIElement, entry.FullName, 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMax.y}", TextAnchor.MiddleLeft);
 
                 if (!string.IsNullOrEmpty(entry.Description))
-                    ModernUI.Label(container, UIElement, $"<size=8><color=#808080>({entry.Description})</color></size>", 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMin.y + 0.02f}", TextAnchor.LowerLeft);
+                    ModernUI.Label(contentContainer, UIElement, $"<size=8><color=#808080>({entry.Description})</color></size>", 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMin.y + 0.02f}", TextAnchor.LowerLeft);
 
                 Vector2 inputMin = new Vector2(labelMax.x + 0.005f, labelMin.y + 0.005f);
                 Vector2 inputMax = new Vector2(labelMax.x + 0.18f, labelMax.y - 0.005f);
 
-                ModernUI.Panel(container, UIElement, uiColors["button_primary"], $"{inputMin.x} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
-                ModernUI.Input(container, UIElement, "1 1 1 1", entry.String, 12, 
+                ModernUI.Panel(contentContainer, UIElement, uiColors["button_primary"], $"{inputMin.x} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
+                ModernUI.Input(contentContainer, UIElement, "1 1 1 1", entry.String, 12, 
                     $"amui.setconvar {entry.FullName} {page} {(string.IsNullOrEmpty(filter) ? "!!" : filter)} ", $"{inputMin.x + 0.005f} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
 
                 if (isDivisable)
@@ -1460,8 +1452,8 @@ namespace Oxide.Plugins
                 count++;
             }
 
-            CuiHelper.DestroyUi(player, UIElement);
-            CuiHelper.AddUi(player, container);
+            CuiHelper.AddUi(player, contentContainer);
+            Puts($"Convars content added for {player.displayName}");
         }
 
         private void OpenPermissionMenu(BasePlayer player, string groupOrUserId, string playerName, string description, int page, string filter)
