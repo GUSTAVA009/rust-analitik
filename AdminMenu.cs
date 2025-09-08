@@ -40,6 +40,7 @@ namespace Oxide.Plugins
         private Dictionary<ItemType, List<KeyValuePair<string, ItemDefinition>>> itemList = new Dictionary<ItemType, List<KeyValuePair<string, ItemDefinition>>>();
         private Hash<ulong, SelectionData> selectData = new Hash<ulong, SelectionData>();
         private Hash<ulong, GroupData> groupCreator = new Hash<ulong, GroupData>();
+        private Hash<ulong, bool> isDestroyingUI = new Hash<ulong, bool>();
         private Hash<ulong, Timer> popupTimers = new Hash<ulong, Timer>();
         private string[] charFilter = new string[] { "~", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
 
@@ -1755,33 +1756,28 @@ namespace Oxide.Plugins
 
         private void DestroyUI(BasePlayer player)
         {
+            // Prevent multiple simultaneous calls
+            if (isDestroyingUI.ContainsKey(player.userID) && isDestroyingUI[player.userID])
+            {
+                Puts($"UI destruction already in progress for {player.displayName}, skipping");
+                return;
+            }
+            
+            isDestroyingUI[player.userID] = true;
             Puts($"Destroying UI for {player.displayName}");
             
-            // Destroy all possible UI containers
-            CuiHelper.DestroyUi(player, UIElement);
-            CuiHelper.DestroyUi(player, UIContent);
-            CuiHelper.DestroyUi(player, UIContentCommands);
-            CuiHelper.DestroyUi(player, UIContentPermissions);
-            CuiHelper.DestroyUi(player, UIContentGroups);
-            CuiHelper.DestroyUi(player, UIContentConvars);
-            CuiHelper.DestroyUi(player, UIMain);
-            CuiHelper.DestroyUi(player, UIPopup);
-            CuiHelper.DestroyUi(player, UISidebar);
-            
-            // Also try to destroy any legacy containers that might exist
-            CuiHelper.DestroyUi(player, "AMUI_MenuMain");
-            CuiHelper.DestroyUi(player, "AMUI_MenuElement");
-            CuiHelper.DestroyUi(player, "AMUI_Content");
-            CuiHelper.DestroyUi(player, "AMUI_ContentCommands");
-            CuiHelper.DestroyUi(player, "AMUI_ContentPermissions");
-            CuiHelper.DestroyUi(player, "AMUI_ContentGroups");
-            CuiHelper.DestroyUi(player, "AMUI_ContentConvars");
-            CuiHelper.DestroyUi(player, "AMUI_PopupMessage");
-            CuiHelper.DestroyUi(player, "AMUI_Sidebar");
+            // Use CuiHelper.DestroyUi with null to destroy ALL UI for this player
+            CuiHelper.DestroyUi(player, null);
             
             // Clear any selection data
             if (selectData.ContainsKey(player.userID))
                 selectData.Remove(player.userID);
+            
+            // Reset the flag after a short delay
+            timer.Once(0.1f, () => {
+                if (isDestroyingUI.ContainsKey(player.userID))
+                    isDestroyingUI.Remove(player.userID);
+            });
                 
             Puts($"UI destroyed for {player.displayName}");
         }
