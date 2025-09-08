@@ -388,6 +388,12 @@ namespace Oxide.Plugins
         const string UIContentConvars = "AMUI_ContentConvars";
         const string UIPopup = "AMUI_PopupMessage";
         const string UISidebar = "AMUI_Sidebar";
+        
+        // Helper method to get unique UI names for each player
+        private string GetUIMain(BasePlayer player) => $"{UIMain}_{player.userID}";
+        private string GetUIElement(BasePlayer player) => $"{UIElement}_{player.userID}";
+        private string GetUIContent(BasePlayer player) => $"{UIContent}_{player.userID}";
+        private string GetUIPopup(BasePlayer player) => $"{UIPopup}_{player.userID}";
               
         private void OpenAdminMenu(BasePlayer player)
         {
@@ -397,10 +403,10 @@ namespace Oxide.Plugins
 
         private void CreateModernMainMenu(BasePlayer player)
         {
-            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            CuiElementContainer container = ModernUI.Container(GetUIMain(player), uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
             // Main background with gradient effect
-            ModernUI.Panel(container, UIMain, uiColors["bg1"], "0 0", "1 1");
+            ModernUI.Panel(container, GetUIMain(player), uiColors["bg1"], "0 0", "1 1");
             
             // Header section
             CreateModernHeader(container, player);
@@ -1766,8 +1772,21 @@ namespace Oxide.Plugins
             isDestroyingUI[player.userID] = true;
             Puts($"Destroying UI for {player.displayName}");
             
-            // Use CuiHelper.DestroyUi with null to destroy ALL UI for this player
-            CuiHelper.DestroyUi(player, null);
+            // Destroy specific UI containers for this player
+            CuiHelper.DestroyUi(player, GetUIMain(player));
+            CuiHelper.DestroyUi(player, GetUIElement(player));
+            CuiHelper.DestroyUi(player, GetUIContent(player));
+            CuiHelper.DestroyUi(player, GetUIPopup(player));
+            
+            // Also destroy any legacy containers
+            CuiHelper.DestroyUi(player, UIMain);
+            CuiHelper.DestroyUi(player, UIElement);
+            CuiHelper.DestroyUi(player, UIContent);
+            CuiHelper.DestroyUi(player, UIPopup);
+            CuiHelper.DestroyUi(player, UIContentCommands);
+            CuiHelper.DestroyUi(player, UIContentPermissions);
+            CuiHelper.DestroyUi(player, UIContentGroups);
+            CuiHelper.DestroyUi(player, UIContentConvars);
             
             // Clear any selection data
             if (selectData.ContainsKey(player.userID))
