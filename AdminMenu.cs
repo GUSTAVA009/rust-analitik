@@ -588,7 +588,7 @@ namespace Oxide.Plugins
             Puts($"All UI destroyed for {player.displayName}");
             
             // Create the entire menu with permissions content
-            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            CuiElementContainer container = ModernUI.Container(GetUIMain(player), uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
             // Create header
             CreateModernHeader(container, player);
@@ -973,7 +973,7 @@ namespace Oxide.Plugins
             Puts($"All UI destroyed for {player.displayName}");
             
             // Create the entire menu with commands content
-            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            CuiElementContainer container = ModernUI.Container(GetUIMain(player), uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
             // Create header
             CreateModernHeader(container, player);
@@ -1348,14 +1348,21 @@ namespace Oxide.Plugins
             DestroyUI(player);
             Puts($"All UI destroyed for {player.displayName}");
             
-            // Create the entire menu
-            CreateModernMainMenu(player);
-            Puts($"Main menu created for {player.displayName}");
+            // Create the entire menu with groups content
+            CuiElementContainer container = ModernUI.Container(GetUIMain(player), uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
-            // Now add the groups content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContentGroups, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
-            CreateModernMenuButtons(contentContainer, MenuType.Groups, player.UserIDString);
-            CreateGroupTabs(contentContainer, player.UserIDString);
+            // Create header
+            CreateModernHeader(container, player);
+            
+            // Create sidebar
+            CreateModernSidebar(container, player);
+            
+            // Create content area
+            CreateModernContentArea(container, player);
+            
+            // Add groups content
+            CreateModernMenuButtons(container, MenuType.Groups, player.UserIDString);
+            CreateGroupTabs(container, player.UserIDString);
 
             switch (subType)
             {
@@ -1431,16 +1438,23 @@ namespace Oxide.Plugins
             DestroyUI(player);
             Puts($"All UI destroyed for {player.displayName}");
             
-            // Create the entire menu
-            CreateModernMainMenu(player);
-            Puts($"Main menu created for {player.displayName}");
+            // Create the entire menu with convars content
+            CuiElementContainer container = ModernUI.Container(GetUIMain(player), uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
-            // Now add the convars content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContentConvars, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
-            CreateModernMenuButtons(contentContainer, MenuType.Convars, player.UserIDString);
-            CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement convars view 0");
+            // Create header
+            CreateModernHeader(container, player);
+            
+            // Create sidebar
+            CreateModernSidebar(container, player);
+            
+            // Create content area
+            CreateModernContentArea(container, player);
+            
+            // Add convars content
+            CreateModernMenuButtons(container, MenuType.Convars, player.UserIDString);
+            CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement convars view 0");
 
-            ModernUI.Panel(contentContainer, UIMain, uiColors["bg3"], "0.27 0.1", "0.98 0.9");
+            ModernUI.Panel(container, GetUIMain(player), uiColors["bg3"], "0.27 0.1", "0.98 0.9");
 
             const int NUM_PER_PAGE = 34;
             const float Y_BOTTOM = 0.865f;
@@ -1491,7 +1505,7 @@ namespace Oxide.Plugins
                 count++;
             }
 
-            CuiHelper.AddUi(player, contentContainer);
+            CuiHelper.AddUi(player, container);
             Puts($"Convars content added for {player.displayName}");
         }
 
