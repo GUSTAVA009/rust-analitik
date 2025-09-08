@@ -381,6 +381,10 @@ namespace Oxide.Plugins
         const string UIMain = "AMUI_MenuMain";        
         const string UIElement = "AMUI_MenuElement";
         const string UIContent = "AMUI_Content";
+        const string UIContentCommands = "AMUI_ContentCommands";
+        const string UIContentPermissions = "AMUI_ContentPermissions";
+        const string UIContentGroups = "AMUI_ContentGroups";
+        const string UIContentConvars = "AMUI_ContentConvars";
         const string UIPopup = "AMUI_PopupMessage";
         const string UISidebar = "AMUI_Sidebar";
               
@@ -581,7 +585,7 @@ namespace Oxide.Plugins
             Puts($"Main menu created for {player.displayName}");
             
             // Now add the permissions content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContent, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
+            CuiElementContainer contentContainer = ModernUI.Container(UIContentPermissions, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
             CreateModernMenuButtons(contentContainer, MenuType.Permissions, player.UserIDString);
             CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement permissions view 0");
 
@@ -958,7 +962,7 @@ namespace Oxide.Plugins
             CreateModernMainMenu(player);
             
             // Now add the commands content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContent, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
+            CuiElementContainer contentContainer = ModernUI.Container(UIContentCommands, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
             CreateMenuCommands(contentContainer, player, subType, page, itemType);
             CuiHelper.AddUi(player, contentContainer);
             Puts($"New UI added for {player.displayName}");
@@ -1326,7 +1330,7 @@ namespace Oxide.Plugins
             Puts($"Main menu created for {player.displayName}");
             
             // Now add the groups content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContent, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
+            CuiElementContainer contentContainer = ModernUI.Container(UIContentGroups, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
             CreateModernMenuButtons(contentContainer, MenuType.Groups, player.UserIDString);
             CreateGroupTabs(contentContainer, player.UserIDString);
 
@@ -1409,7 +1413,7 @@ namespace Oxide.Plugins
             Puts($"Main menu created for {player.displayName}");
             
             // Now add the convars content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContent, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
+            CuiElementContainer contentContainer = ModernUI.Container(UIContentConvars, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
             CreateModernMenuButtons(contentContainer, MenuType.Convars, player.UserIDString);
             CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement convars view 0");
 
@@ -1740,6 +1744,10 @@ namespace Oxide.Plugins
             // Destroy all possible UI containers
             CuiHelper.DestroyUi(player, UIElement);
             CuiHelper.DestroyUi(player, UIContent);
+            CuiHelper.DestroyUi(player, UIContentCommands);
+            CuiHelper.DestroyUi(player, UIContentPermissions);
+            CuiHelper.DestroyUi(player, UIContentGroups);
+            CuiHelper.DestroyUi(player, UIContentConvars);
             CuiHelper.DestroyUi(player, UIMain);
             CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.DestroyUi(player, UISidebar);
@@ -1748,6 +1756,10 @@ namespace Oxide.Plugins
             CuiHelper.DestroyUi(player, "AMUI_MenuMain");
             CuiHelper.DestroyUi(player, "AMUI_MenuElement");
             CuiHelper.DestroyUi(player, "AMUI_Content");
+            CuiHelper.DestroyUi(player, "AMUI_ContentCommands");
+            CuiHelper.DestroyUi(player, "AMUI_ContentPermissions");
+            CuiHelper.DestroyUi(player, "AMUI_ContentGroups");
+            CuiHelper.DestroyUi(player, "AMUI_ContentConvars");
             CuiHelper.DestroyUi(player, "AMUI_PopupMessage");
             CuiHelper.DestroyUi(player, "AMUI_Sidebar");
             
