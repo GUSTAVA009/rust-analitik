@@ -580,14 +580,21 @@ namespace Oxide.Plugins
             DestroyUI(player);
             Puts($"All UI destroyed for {player.displayName}");
             
-            // Create the entire menu
-            CreateModernMainMenu(player);
-            Puts($"Main menu created for {player.displayName}");
+            // Create the entire menu with permissions content
+            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
-            // Now add the permissions content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContentPermissions, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
-            CreateModernMenuButtons(contentContainer, MenuType.Permissions, player.UserIDString);
-            CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement permissions view 0");
+            // Create header
+            CreateModernHeader(container, player);
+            
+            // Create sidebar
+            CreateModernSidebar(container, player);
+            
+            // Create content area
+            CreateModernContentArea(container, player);
+            
+            // Add permissions content
+            CreateModernMenuButtons(container, MenuType.Permissions, player.UserIDString);
+            CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement permissions view 0");
 
             List<KeyValuePair<string, bool>> permList = new List<KeyValuePair<string, bool>>(permissionList);
             if (!string.IsNullOrEmpty(filter) && filter != "~")
@@ -595,12 +602,12 @@ namespace Oxide.Plugins
             permList.OrderBy(x => x.Key);
 
             // Pagination
-            CreateModernPagination(contentContainer, player, page, permList.Count, 72, $"amui.switchelement permissions view {{0}} {filter}");
+            CreateModernPagination(container, player, page, permList.Count, 72, $"amui.switchelement permissions view {{0}} {filter}");
 
             // Permission grid
-            CreateModernPermissionGrid(contentContainer, permList, page, player);
+            CreateModernPermissionGrid(container, permList, page, player);
 
-            CuiHelper.AddUi(player, contentContainer);
+            CuiHelper.AddUi(player, container);
         }
 
         private void CreateModernPermissionGrid(CuiElementContainer container, List<KeyValuePair<string, bool>> permList, int page, BasePlayer player)
@@ -958,13 +965,22 @@ namespace Oxide.Plugins
             DestroyUI(player);
             Puts($"All UI destroyed for {player.displayName}");
             
-            // Create the entire menu
-            CreateModernMainMenu(player);
+            // Create the entire menu with commands content
+            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
-            // Now add the commands content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIContentCommands, uiColors["bg1"], "0.27 0.1", "0.98 0.85", true);
-            CreateMenuCommands(contentContainer, player, subType, page, itemType);
-            CuiHelper.AddUi(player, contentContainer);
+            // Create header
+            CreateModernHeader(container, player);
+            
+            // Create sidebar
+            CreateModernSidebar(container, player);
+            
+            // Create content area
+            CreateModernContentArea(container, player);
+            
+            // Add commands content
+            CreateMenuCommands(container, player, subType, page, itemType);
+            
+            CuiHelper.AddUi(player, container);
             Puts($"New UI added for {player.displayName}");
         }
 
