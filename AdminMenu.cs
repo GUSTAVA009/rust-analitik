@@ -561,13 +561,13 @@ namespace Oxide.Plugins
             // Destroy ALL UI first
             DestroyUI(player);
             
-            // Recreate the entire menu
+            // Create the entire menu
             CreateModernMainMenu(player);
             
-            // Now add the permissions content
-            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
-            CreateModernMenuButtons(container, MenuType.Permissions, player.UserIDString);
-            CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement permissions view 0");
+            // Now add the permissions content in a separate container
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateModernMenuButtons(contentContainer, MenuType.Permissions, player.UserIDString);
+            CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement permissions view 0");
 
             List<KeyValuePair<string, bool>> permList = new List<KeyValuePair<string, bool>>(permissionList);
             if (!string.IsNullOrEmpty(filter) && filter != "~")
@@ -575,13 +575,12 @@ namespace Oxide.Plugins
             permList.OrderBy(x => x.Key);
 
             // Pagination
-            CreateModernPagination(container, player, page, permList.Count, 72, $"amui.switchelement permissions view {{0}} {filter}");
+            CreateModernPagination(contentContainer, player, page, permList.Count, 72, $"amui.switchelement permissions view {{0}} {filter}");
 
             // Permission grid
-            CreateModernPermissionGrid(container, permList, page, player);
+            CreateModernPermissionGrid(contentContainer, permList, page, player);
 
-            CuiHelper.DestroyUi(player, UIElement);
-            CuiHelper.AddUi(player, container);
+            CuiHelper.AddUi(player, contentContainer);
         }
 
         private void CreateModernPermissionGrid(CuiElementContainer container, List<KeyValuePair<string, bool>> permList, int page, BasePlayer player)
@@ -939,13 +938,13 @@ namespace Oxide.Plugins
             DestroyUI(player);
             Puts($"All UI destroyed for {player.displayName}");
             
-            // Recreate the entire menu with commands content
+            // Create the entire menu
             CreateModernMainMenu(player);
             
-            // Now add the commands content
-            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
-            CreateMenuCommands(container, player, subType, page, itemType);
-            CuiHelper.AddUi(player, container);
+            // Now add the commands content in a separate container
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CreateMenuCommands(contentContainer, player, subType, page, itemType);
+            CuiHelper.AddUi(player, contentContainer);
             Puts($"New UI added for {player.displayName}");
         }
 
@@ -1297,11 +1296,19 @@ namespace Oxide.Plugins
             // Destroy ALL UI first
             DestroyUI(player);
             
-            // Recreate the entire menu
-            CreateModernMainMenu(player);
+            // Create the entire menu with groups content
+            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            
+            // Create header
+            CreateModernHeader(container, player);
+            
+            // Create sidebar
+            CreateModernSidebar(container, player);
+            
+            // Create content area
+            CreateModernContentArea(container, player);
             
             // Now add the groups content
-            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Groups, player.UserIDString);
             CreateGroupTabs(container, player.UserIDString);
 
@@ -1376,15 +1383,23 @@ namespace Oxide.Plugins
             // Destroy ALL UI first
             DestroyUI(player);
             
-            // Recreate the entire menu
-            CreateModernMainMenu(player);
+            // Create the entire menu with convars content
+            CuiElementContainer container = ModernUI.Container(UIMain, uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
+            
+            // Create header
+            CreateModernHeader(container, player);
+            
+            // Create sidebar
+            CreateModernSidebar(container, player);
+            
+            // Create content area
+            CreateModernContentArea(container, player);
             
             // Now add the convars content
-            CuiElementContainer container = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
             CreateModernMenuButtons(container, MenuType.Convars, player.UserIDString);
             CreateModernCharacterFilter(container, player.userID, filter, $"amui.switchelement convars view 0");
 
-            ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.005 0.01", "0.995 0.92");
+            ModernUI.Panel(container, UIMain, uiColors["bg3"], "0.27 0.1", "0.98 0.9");
 
             const int NUM_PER_PAGE = 34;
             const float Y_BOTTOM = 0.865f;
