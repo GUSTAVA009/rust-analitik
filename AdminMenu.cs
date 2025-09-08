@@ -1371,9 +1371,9 @@ namespace Oxide.Plugins
                     groupList.Sort();
 
                     if (page > 0)
-                        ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement groups view {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                     if (groupList.Count > 72 && groupList.Count > (72 * page + 72))
-                        ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement groups view {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
                     int count = 0;
                     for (int i = page * 72; i < groupList.Count; i++)
@@ -1381,7 +1381,7 @@ namespace Oxide.Plugins
                         string groupId = groupList[i];
                         float[] position = CalculateModernButtonPos(count);
 
-                        ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_secondary"], uiColors["button_hover"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.switchelement groups view 0 {groupId}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], uiColors["button_hover"], groupId, 10, $"{position[0]} {position[1]}", $"{position[2]} {position[3]}", $"amui.switchelement groups view 0 {groupId}", TextAnchor.MiddleLeft, uiColors["text_primary"]);
                         ++count;
 
                         if (count >= 72)
@@ -1399,34 +1399,34 @@ namespace Oxide.Plugins
                             groupData = groupCreator[player.userID];
                         }
 
-                        ModernUI.Label(contentContainer, UIElement, msg("inputhelper", player.UserIDString), 18, "0.1 0.75", "0.9 0.85");
+                        ModernUI.Label(container, UIElement, msg("inputhelper", player.UserIDString), 18, "0.1 0.75", "0.9 0.85");
 
-                        ModernUI.Label(contentContainer, UIElement, msg("groupname", player.UserIDString), 16, "0.1 0.62", "0.3 0.7", TextAnchor.MiddleLeft);
-                        ModernUI.Label(contentContainer, UIElement, msg("uiwarning", player.UserIDString), 8, "0.1 0.15", "0.9 0.2", TextAnchor.MiddleLeft);
-                        ModernUI.Panel(contentContainer, UIElement, uiColors["bg3"], "0.3 0.63", "0.9 0.69");
+                        ModernUI.Label(container, UIElement, msg("groupname", player.UserIDString), 16, "0.1 0.62", "0.3 0.7", TextAnchor.MiddleLeft);
+                        ModernUI.Label(container, UIElement, msg("uiwarning", player.UserIDString), 8, "0.1 0.15", "0.9 0.2", TextAnchor.MiddleLeft);
+                        ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.3 0.63", "0.9 0.69");
                         if (string.IsNullOrEmpty(groupData.name))
-                            ModernUI.Input(contentContainer, UIElement, "", groupData.name, 16, "amui.registergroup input name", "0.32 0.63", "0.9 0.69");
-                        else ModernUI.Label(contentContainer, UIElement, groupData.name, 16, "0.32 0.63", "0.9 0.69", TextAnchor.MiddleLeft);
+                            ModernUI.Input(container, UIElement, "", groupData.name, 16, "amui.registergroup input name", "0.32 0.63", "0.9 0.69");
+                        else ModernUI.Label(container, UIElement, groupData.name, 16, "0.32 0.63", "0.9 0.69", TextAnchor.MiddleLeft);
 
-                        ModernUI.Label(contentContainer, UIElement, msg("grouptitle", player.UserIDString), 16, "0.1 0.54", "0.3 0.62", TextAnchor.MiddleLeft);
-                        ModernUI.Panel(contentContainer, UIElement, uiColors["bg3"], "0.3 0.55", "0.9 0.61");
+                        ModernUI.Label(container, UIElement, msg("grouptitle", player.UserIDString), 16, "0.1 0.54", "0.3 0.62", TextAnchor.MiddleLeft);
+                        ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.3 0.55", "0.9 0.61");
                         if (string.IsNullOrEmpty(groupData.title))
-                            ModernUI.Input(contentContainer, UIElement, "", groupData.title, 16, "amui.registergroup input title", "0.32 0.55", "0.9 0.61");
-                        else ModernUI.Label(contentContainer, UIElement, groupData.title, 16, "0.32 0.55", "0.9 0.61", TextAnchor.MiddleLeft);
+                            ModernUI.Input(container, UIElement, "", groupData.title, 16, "amui.registergroup input title", "0.32 0.55", "0.9 0.61");
+                        else ModernUI.Label(container, UIElement, groupData.title, 16, "0.32 0.55", "0.9 0.61", TextAnchor.MiddleLeft);
 
-                        ModernUI.Label(contentContainer, UIElement, msg("grouprank", player.UserIDString), 16, "0.1 0.46", "0.3 0.54", TextAnchor.MiddleLeft);
-                        ModernUI.Panel(contentContainer, UIElement, uiColors["bg3"], "0.3 0.47", "0.9 0.53");
+                        ModernUI.Label(container, UIElement, msg("grouprank", player.UserIDString), 16, "0.1 0.46", "0.3 0.54", TextAnchor.MiddleLeft);
+                        ModernUI.Panel(container, UIElement, uiColors["bg3"], "0.3 0.47", "0.9 0.53");
                         if (string.IsNullOrEmpty(groupData.rank))
-                            ModernUI.Input(contentContainer, UIElement, "", groupData.rank, 16, "amui.registergroup input rank", "0.32 0.47", "0.9 0.53");
-                        else ModernUI.Label(contentContainer, UIElement, groupData.rank, 16, "0.32 0.47", "0.9 0.53", TextAnchor.MiddleLeft);
+                            ModernUI.Input(container, UIElement, "", groupData.rank, 16, "amui.registergroup input rank", "0.32 0.47", "0.9 0.53");
+                        else ModernUI.Label(container, UIElement, groupData.rank, 16, "0.32 0.47", "0.9 0.53", TextAnchor.MiddleLeft);
 
-                        ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_secondary"], uiColors["button_hover"], msg("reset", player.UserIDString), 16, "0.345 0.38", "0.495 0.44", "amui.registergroup reset", TextAnchor.MiddleCenter, uiColors["text_primary"]);
-                        ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("create", player.UserIDString), 16, "0.505 0.38", "0.655 0.44", "amui.registergroup create", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_secondary"], uiColors["button_hover"], msg("reset", player.UserIDString), 16, "0.345 0.38", "0.495 0.44", "amui.registergroup reset", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                        ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("create", player.UserIDString), 16, "0.505 0.38", "0.655 0.44", "amui.registergroup create", TextAnchor.MiddleCenter, uiColors["text_primary"]);
                         break;
                     }
             }
 
-            CuiHelper.AddUi(player, contentContainer);
+            CuiHelper.AddUi(player, container);
             Puts($"Groups content added for {player.displayName}");
         }
 
@@ -1472,9 +1472,9 @@ namespace Oxide.Plugins
             convars.OrderBy(x => x.FullName);
 
             if (page > 0)
-                ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", player.UserIDString), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement convars view {page - 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (convars.Count > (NUM_PER_PAGE * page + NUM_PER_PAGE))
-                ModernUI.ModernButton(contentContainer, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", player.UserIDString), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement convars view {page + 1} {filter}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             for (int i = page * NUM_PER_PAGE; i < Mathf.Min((page + 1) * NUM_PER_PAGE, convars.Count); i++)
             {
@@ -1487,16 +1487,16 @@ namespace Oxide.Plugins
                 Vector2 labelMin = new Vector2(X_LEFT_START + (isDivisable ? 0.5f : 0f), Y_BOTTOM - (Y_SIZE * row));
                 Vector2 labelMax = new Vector2(labelMin.x + 0.3f, labelMin.y + Y_SIZE);
 
-                ModernUI.Label(contentContainer, UIElement, entry.FullName, 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMax.y}", TextAnchor.MiddleLeft);
+                ModernUI.Label(container, UIElement, entry.FullName, 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMax.y}", TextAnchor.MiddleLeft);
 
                 if (!string.IsNullOrEmpty(entry.Description))
-                    ModernUI.Label(contentContainer, UIElement, $"<size=8><color=#808080>({entry.Description})</color></size>", 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMin.y + 0.02f}", TextAnchor.LowerLeft);
+                    ModernUI.Label(container, UIElement, $"<size=8><color=#808080>({entry.Description})</color></size>", 12, $"{labelMin.x} {labelMin.y}", $"{labelMax.x} {labelMin.y + 0.02f}", TextAnchor.LowerLeft);
 
                 Vector2 inputMin = new Vector2(labelMax.x + 0.005f, labelMin.y + 0.005f);
                 Vector2 inputMax = new Vector2(labelMax.x + 0.18f, labelMax.y - 0.005f);
 
-                ModernUI.Panel(contentContainer, UIElement, uiColors["button_primary"], $"{inputMin.x} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
-                ModernUI.Input(contentContainer, UIElement, "1 1 1 1", entry.String, 12, 
+                ModernUI.Panel(container, UIElement, uiColors["button_primary"], $"{inputMin.x} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
+                ModernUI.Input(container, UIElement, "1 1 1 1", entry.String, 12, 
                     $"amui.setconvar {entry.FullName} {page} {(string.IsNullOrEmpty(filter) ? "!!" : filter)} ", $"{inputMin.x + 0.005f} {inputMin.y}", $"{inputMax.x} {inputMax.y}");
 
                 if (isDivisable)
