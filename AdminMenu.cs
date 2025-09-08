@@ -558,11 +558,15 @@ namespace Oxide.Plugins
 
         private void CreateModernMenuPermissions(BasePlayer player, int page = 0, string filter = "")
         {
+            Puts($"CreateModernMenuPermissions called for {player.displayName}, page: {page}, filter: {filter}");
+            
             // Destroy ALL UI first
             DestroyUI(player);
+            Puts($"All UI destroyed for {player.displayName}");
             
             // Create the entire menu
             CreateModernMainMenu(player);
+            Puts($"Main menu created for {player.displayName}");
             
             // Now add the permissions content in a separate container
             CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
@@ -979,6 +983,7 @@ namespace Oxide.Plugins
             switch (arg.Args[0])
             {
                 case "permissions":
+                    Puts($"Creating permissions menu for {player.displayName}");
                     PermSub permSub = PermSub.View;                    
                     if (arg.Args.Length > 1)
                         permSub = ParseType<PermSub>(arg.Args[1]);
@@ -987,6 +992,7 @@ namespace Oxide.Plugins
                     {
                         case PermSub.View:
                             CreateModernMenuPermissions(player, page, arg.Args.Length > 3 ? arg.GetString(3) : "");
+                            Puts($"Permissions menu created for {player.displayName}");
                             return;
                         case PermSub.Player:
                             if (arg.Args.Length >= 5)
@@ -1001,6 +1007,7 @@ namespace Oxide.Plugins
                     }
                     return;
                 case "groups":
+                    Puts($"Creating groups menu for {player.displayName}");
                     GroupSub groupSub = GroupSub.View;
                     if (arg.Args.Length > 1)
                         groupSub = ParseType<GroupSub>(arg.Args[1]);
@@ -1028,6 +1035,7 @@ namespace Oxide.Plugins
                             return;                        
                     }
                     CreateMenuGroups(player, groupSub, page);
+                    Puts($"Groups menu created for {player.displayName}");
                     return;
                 case "commands":
                     Puts($"Creating commands menu for {player.displayName}");
@@ -1046,7 +1054,9 @@ namespace Oxide.Plugins
                     CreateMenuCommands(player, CommSub.Give, page, itemType);
                     return;
                 case "convars":
+                    Puts($"Creating convars menu for {player.displayName}");
                     CreateMenuConvars(player, page, arg.Args.Length > 3 ? arg.GetString(3) : "");
+                    Puts($"Convars menu created for {player.displayName}");
                     return;
 
                 case "exit":
