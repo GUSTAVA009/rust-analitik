@@ -120,6 +120,12 @@ namespace Oxide.Plugins
             else storedData.RemoveOldPlayers();
 
             SetUIColors();
+            
+            // Destroy any existing UI for all players
+            foreach (var player in BasePlayer.activePlayerList)
+            {
+                DestroyUI(player);
+            }
 
             foreach(var item in ItemManager.itemList)
             {
@@ -134,10 +140,16 @@ namespace Oxide.Plugins
                 OnPlayerConnected(player);
         }
 
-        private void OnPlayerConnected(BasePlayer player) => storedData.OnPlayerInit(player.UserIDString);
+        private void OnPlayerConnected(BasePlayer player) 
+        {
+            // Destroy any existing UI for this player
+            DestroyUI(player);
+            storedData.OnPlayerInit(player.UserIDString);
+        }
 
         private void OnPlayerDisconnected(BasePlayer player)
         {
+            Puts($"Player {player.displayName} disconnected, destroying UI");
             DestroyUI(player);
             storedData.AddOfflinePlayer(player.UserIDString);
         }
@@ -1723,14 +1735,27 @@ namespace Oxide.Plugins
 
         private void DestroyUI(BasePlayer player)
         {
+            Puts($"Destroying UI for {player.displayName}");
+            
+            // Destroy all possible UI containers
             CuiHelper.DestroyUi(player, UIElement);
             CuiHelper.DestroyUi(player, UIContent);
             CuiHelper.DestroyUi(player, UIMain);
             CuiHelper.DestroyUi(player, UIPopup);
+            CuiHelper.DestroyUi(player, UISidebar);
+            
+            // Also try to destroy any legacy containers that might exist
+            CuiHelper.DestroyUi(player, "AMUI_MenuMain");
+            CuiHelper.DestroyUi(player, "AMUI_MenuElement");
+            CuiHelper.DestroyUi(player, "AMUI_Content");
+            CuiHelper.DestroyUi(player, "AMUI_PopupMessage");
+            CuiHelper.DestroyUi(player, "AMUI_Sidebar");
             
             // Clear any selection data
             if (selectData.ContainsKey(player.userID))
                 selectData.Remove(player.userID);
+                
+            Puts($"UI destroyed for {player.displayName}");
         }
         
         private T ParseType<T>(string type) => (T)Enum.Parse(typeof(T), type, true);
