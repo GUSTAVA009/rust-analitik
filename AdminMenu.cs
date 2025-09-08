@@ -569,7 +569,7 @@ namespace Oxide.Plugins
             Puts($"Main menu created for {player.displayName}");
             
             // Now add the permissions content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, uiColors["bg1"], "0.27 0.1", "0.98 0.9", true);
             CreateModernMenuButtons(contentContainer, MenuType.Permissions, player.UserIDString);
             CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement permissions view 0");
 
@@ -946,7 +946,7 @@ namespace Oxide.Plugins
             CreateModernMainMenu(player);
             
             // Now add the commands content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, uiColors["bg1"], "0.27 0.1", "0.98 0.9", true);
             CreateMenuCommands(contentContainer, player, subType, page, itemType);
             CuiHelper.AddUi(player, contentContainer);
             Puts($"New UI added for {player.displayName}");
@@ -1314,7 +1314,7 @@ namespace Oxide.Plugins
             Puts($"Main menu created for {player.displayName}");
             
             // Now add the groups content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, uiColors["bg1"], "0.27 0.1", "0.98 0.9", true);
             CreateModernMenuButtons(contentContainer, MenuType.Groups, player.UserIDString);
             CreateGroupTabs(contentContainer, player.UserIDString);
 
@@ -1397,7 +1397,7 @@ namespace Oxide.Plugins
             Puts($"Main menu created for {player.displayName}");
             
             // Now add the convars content in a separate container
-            CuiElementContainer contentContainer = ModernUI.Container(UIElement, "0 0 0 0", "0.27 0.1", "0.98 0.9");
+            CuiElementContainer contentContainer = ModernUI.Container(UIElement, uiColors["bg1"], "0.27 0.1", "0.98 0.9", true);
             CreateModernMenuButtons(contentContainer, MenuType.Convars, player.UserIDString);
             CreateModernCharacterFilter(contentContainer, player.userID, filter, $"amui.switchelement convars view 0");
 
