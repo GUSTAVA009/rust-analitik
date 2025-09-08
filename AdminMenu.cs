@@ -795,17 +795,17 @@ namespace Oxide.Plugins
 
         private void CreateCommandEntry(CuiElementContainer container, CommSub subType, int page, string playerId)
         {
-            ModernUI.Label(container, UIElement, msg("command", playerId), 16, "0.02 0.82", "0.15 0.87", TextAnchor.MiddleLeft);
-            ModernUI.Label(container, UIElement, msg("description", playerId), 16, "0.15 0.82", "0.4 0.87", TextAnchor.MiddleLeft);
-            ModernUI.Label(container, UIElement, msg("command", playerId), 16, "0.52 0.82", "0.65 0.87", TextAnchor.MiddleLeft);
-            ModernUI.Label(container, UIElement, msg("description", playerId), 16, "0.65 0.82", "0.9 0.87", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("command", playerId), 16, "0.02 0.75", "0.15 0.8", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("description", playerId), 16, "0.15 0.75", "0.4 0.8", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("command", playerId), 16, "0.52 0.75", "0.65 0.8", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, UIElement, msg("description", playerId), 16, "0.65 0.75", "0.9 0.8", TextAnchor.MiddleLeft);
                        
             List<CommandEntry> commands = subType == CommSub.Chat ? configData.ChatCommands : configData.ConsoleCommands;
 
             if (page > 0)
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", playerId), 16, "0.015 0.875", "0.145 0.915", $"amui.switchelement commands {subType.ToString()} {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("back", playerId), 16, "0.015 0.7", "0.145 0.73", $"amui.switchelement commands {subType.ToString()} {page - 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
             if (commands.Count > 32 && commands.Count > (32 * page + 32))
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", playerId), 16, "0.855 0.875", "0.985 0.915", $"amui.switchelement commands {subType.ToString()} {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("next", playerId), 16, "0.855 0.7", "0.985 0.73", $"amui.switchelement commands {subType.ToString()} {page + 1}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
             int count = 1;
             for (int i = page * 32; i < commands.Count; i++)
@@ -813,9 +813,9 @@ namespace Oxide.Plugins
                 CommandEntry entry = commands[i];
                 bool isDivisable = i % 2 == 0;
                 
-                ModernUI.Label(container, UIElement, entry.Name, 15, $"{(isDivisable ? 0.02f : 0.52f)} {0.82f - (0.05f * count)}", $"{(isDivisable ? 0.15f : 0.65f)} {0.87f - (0.05f * count)}", TextAnchor.MiddleLeft);
-                ModernUI.Label(container, UIElement, entry.Description, 15, $"{(isDivisable ? 0.15f : 0.65f)} {0.82f - (0.05f * count)}", $"{(isDivisable ? 0.4f : 0.9f)} {0.87f - (0.05f * count)}", TextAnchor.MiddleLeft);
-                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("use", playerId), 15, $"{(isDivisable ? 0.41f : 0.91f)} {(0.82f - (0.05f * count)) + 0.005f}", $"{(isDivisable ? 0.49f : 0.99f)} {(0.87f - (0.05f * count)) - 0.005f}", $"amui.runcommand {subType} {i}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+                ModernUI.Label(container, UIElement, entry.Name, 15, $"{(isDivisable ? 0.02f : 0.52f)} {0.75f - (0.05f * count)}", $"{(isDivisable ? 0.15f : 0.65f)} {0.8f - (0.05f * count)}", TextAnchor.MiddleLeft);
+                ModernUI.Label(container, UIElement, entry.Description, 15, $"{(isDivisable ? 0.15f : 0.65f)} {0.75f - (0.05f * count)}", $"{(isDivisable ? 0.4f : 0.9f)} {0.8f - (0.05f * count)}", TextAnchor.MiddleLeft);
+                ModernUI.ModernButton(container, UIElement, uiColors["button_primary"], uiColors["button_hover"], msg("use", playerId), 15, $"{(isDivisable ? 0.41f : 0.91f)} {(0.75f - (0.05f * count)) + 0.005f}", $"{(isDivisable ? 0.49f : 0.99f)} {(0.8f - (0.05f * count)) - 0.005f}", $"amui.runcommand {subType} {i}", TextAnchor.MiddleCenter, uiColors["text_primary"]);
 
                 if (!isDivisable)
                     ++count;
