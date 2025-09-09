@@ -510,16 +510,16 @@ namespace Oxide.Plugins
             switch (menuType)
             {
                 case MenuType.Commands:
-                    CreateCommandTabs(container, playerId);
+                    CreateCommandTabs(container, player);
                     break;
                 case MenuType.Permissions:
-                    CreatePermissionTabs(container, playerId);
+                    CreatePermissionTabs(container, player.UserIDString);
                     break;
                 case MenuType.Groups:
-                    CreateGroupTabs(container, playerId);
+                    CreateGroupTabs(container, player.UserIDString);
                     break;
                 case MenuType.Convars:
-                    CreateConvarTabs(container, playerId);
+                    CreateConvarTabs(container, player.UserIDString);
                     break;
             }
         }
@@ -748,7 +748,6 @@ namespace Oxide.Plugins
                 popupTimers.Remove(player.userID);
             });
 
-            CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.AddUi(player, container);
         }
 
@@ -763,7 +762,7 @@ namespace Oxide.Plugins
             {
                 SelectionData data;
                 if (selectData.TryGetValue(player.userID, out data) && !string.IsNullOrEmpty(data.target1_Id))                
-                    CreatePlayerMenu(container, data, player.UserIDString);                
+                    CreatePlayerMenu(container, data, player);                
                 else
                 {
                     if (data == null)
@@ -785,9 +784,6 @@ namespace Oxide.Plugins
                 }                
             }
             else CreateCommandEntry(container, subType, page, player);
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private void CreateGiveMenu(CuiElementContainer container, ItemType itemType, int page, BasePlayer player)
@@ -877,18 +873,18 @@ namespace Oxide.Plugins
             }
 
             ulong userId = ulong.Parse(iPlayer.Id);
-            BasePlayer player = BasePlayer.FindByID(userId);
+            BasePlayer targetPlayer = BasePlayer.FindByID(userId);
 
             ModernUI.Label(container, GetUIElement(player), $"Name: {iPlayer.Name}", 14, "0.01 0.825", "0.24 0.855", TextAnchor.MiddleLeft);
             ModernUI.Label(container, GetUIElement(player), $"ID: {iPlayer.Id}", 14, "0.01 0.79", "0.24 0.82", TextAnchor.MiddleLeft);
             ModernUI.Label(container, GetUIElement(player), $"Auth Level: {(DeveloperList.Contains(userId) ? "Developer" : (ServerUsers.Get(userId)?.group ?? ServerUsers.UserGroup.None).ToString())}", 14, "0.01 0.755", "0.24 0.785", TextAnchor.MiddleLeft);
-            ModernUI.Label(container, GetUIElement(player), $"Status: {(player != null && player.IsConnected ? "Online" : "Offline")}", 14, "0.01 0.72", "0.24 0.75", TextAnchor.MiddleLeft);
+            ModernUI.Label(container, GetUIElement(player), $"Status: {(targetPlayer != null && targetPlayer.IsConnected ? "Online" : "Offline")}", 14, "0.01 0.72", "0.24 0.75", TextAnchor.MiddleLeft);
 
-            if (player != null)
+            if (targetPlayer != null)
             {
                 // Player actions and info
-                ModernUI.Label(container, GetUIElement(player), $"Position: {player.ServerPosition}", 14, "0.01 0.65", "0.24 0.68", TextAnchor.MiddleLeft);
-                ModernUI.Label(container, GetUIElement(player), $"Health: {Math.Round(player.health, 2)}", 14, "0.01 0.58", "0.24 0.61", TextAnchor.MiddleLeft);
+                ModernUI.Label(container, GetUIElement(player), $"Position: {targetPlayer.ServerPosition}", 14, "0.01 0.65", "0.24 0.68", TextAnchor.MiddleLeft);
+                ModernUI.Label(container, GetUIElement(player), $"Health: {Math.Round(targetPlayer.health, 2)}", 14, "0.01 0.58", "0.24 0.61", TextAnchor.MiddleLeft);
                 
                 // Action buttons
                 if (!configData.UsePlayerAdminPermissions || (configData.UsePlayerAdminPermissions && permission.UserHasPermission(player.UserIDString, PLAYER_KICKBAN_PERMISSION)))
@@ -966,9 +962,6 @@ namespace Oxide.Plugins
                 if (count >= 72)
                     break;
             }
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private enum PlayerAction { Ban, Kick, Kill, MuteChat, UnmuteChat, StripInventory, ResetBlueprints, GiveBlueprints, ResetMetabolism, Hurt25, Hurt50, Hurt75, Heal25, Heal50, Heal75, Heal100, TeleportSelfTo, Permissions }
@@ -1574,7 +1567,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
 
@@ -1613,7 +1605,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
 
@@ -1650,7 +1641,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
         #endregion
@@ -1813,7 +1803,6 @@ namespace Oxide.Plugins
             
             // Also destroy any legacy containers
             CuiHelper.DestroyUi(player, UIMain);
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.DestroyUi(player, UIContent);
             CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.DestroyUi(player, UIContentCommands);
