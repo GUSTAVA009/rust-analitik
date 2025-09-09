@@ -437,24 +437,24 @@ namespace Oxide.Plugins
         private void CreateModernHeader(CuiElementContainer container, BasePlayer player)
         {
             // Header background
-            UI.Panel(container, UIMain, uiColors["header"], "0 0.9", "1 1");
+            UI.Panel(container, GetUIMain(player), uiColors["header"], "0 0.9", "1 1");
             
             // Logo/Title area
-            UI.Label(container, UIMain, "⚡ ADMIN PANEL", 28, "0.02 0.92", "0.3 0.98", TextAnchor.MiddleLeft, uiColors["accent"]);
-            UI.Label(container, UIMain, $"v{Version}", 14, "0.02 0.9", "0.3 0.92", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), "⚡ ADMIN PANEL", 28, "0.02 0.92", "0.3 0.98", TextAnchor.MiddleLeft, uiColors["accent"]);
+            UI.Label(container, GetUIMain(player), $"v{Version}", 14, "0.02 0.9", "0.3 0.92", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
             
             // User info
-            UI.Label(container, UIMain, $"👤 {player.displayName}", 16, "0.7 0.92", "0.98 0.98", TextAnchor.MiddleRight, uiColors["text_primary"]);
-            UI.Label(container, UIMain, $"🆔 {player.UserIDString}", 12, "0.7 0.9", "0.98 0.92", TextAnchor.MiddleRight, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"👤 {player.displayName}", 16, "0.7 0.92", "0.98 0.98", TextAnchor.MiddleRight, uiColors["text_primary"]);
+            UI.Label(container, GetUIMain(player), $"🆔 {player.UserIDString}", 12, "0.7 0.9", "0.98 0.92", TextAnchor.MiddleRight, uiColors["text_secondary"]);
             
             // Close button
-            UI.ModernButton(container, UIMain, uiColors["danger"], uiColors["danger_hover"], "✕", 18, "0.95 0.92", "0.98 0.98", "amui.switchelement exit", TextAnchor.MiddleCenter, uiColors["text_primary"]);
+            UI.ModernButton(container, GetUIMain(player), uiColors["danger"], uiColors["danger_hover"], "✕", 18, "0.95 0.92", "0.98 0.98", "amui.switchelement exit", TextAnchor.MiddleCenter, uiColors["text_primary"]);
         }
 
         private void CreateModernSidebar(CuiElementContainer container, BasePlayer player)
         {
             // Sidebar background
-            UI.Panel(container, UIMain, uiColors["sidebar"], "0 0.1", "0.25 0.9");
+            UI.Panel(container, GetUIMain(player), uiColors["sidebar"], "0 0.1", "0.25 0.9");
             
             // Navigation buttons
             float buttonHeight = 0.08f;
@@ -481,36 +481,36 @@ namespace Oxide.Plugins
             string bgColor = uiColors["button_secondary"];
             string textColor = uiColors["text_primary"];
             
-            UI.ModernButton(container, UIMain, bgColor, uiColors["button_hover"], text, 14, aMin, aMax, command, TextAnchor.MiddleLeft, textColor);
+            UI.ModernButton(container, GetUIMain(player), bgColor, uiColors["button_hover"], text, 14, aMin, aMax, command, TextAnchor.MiddleLeft, textColor);
         }
 
         private void CreateQuickStats(CuiElementContainer container, BasePlayer player)
         {
             // Stats background
-            UI.Panel(container, UIMain, uiColors["card"], "0.02 0.1", "0.23 0.25");
+            UI.Panel(container, GetUIMain(player), uiColors["card"], "0.02 0.1", "0.23 0.25");
             
-            UI.Label(container, UIMain, "📊 QUICK STATS", 16, "0.05 0.2", "0.2 0.25", TextAnchor.MiddleLeft, uiColors["accent"]);
+            UI.Label(container, GetUIMain(player), "📊 QUICK STATS", 16, "0.05 0.2", "0.2 0.25", TextAnchor.MiddleLeft, uiColors["accent"]);
             
             int onlineCount = BasePlayer.activePlayerList.Count;
             int totalGroups = GetGroups().Count;
             int totalPerms = permissionList.Count;
             
-            UI.Label(container, UIMain, $"👥 Online: {onlineCount}", 12, "0.05 0.15", "0.2 0.18", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
-            UI.Label(container, UIMain, $"👥 Groups: {totalGroups}", 12, "0.05 0.12", "0.2 0.15", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
-            UI.Label(container, UIMain, $"🔐 Permissions: {totalPerms}", 12, "0.05 0.09", "0.2 0.12", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"👥 Online: {onlineCount}", 12, "0.05 0.15", "0.2 0.18", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"👥 Groups: {totalGroups}", 12, "0.05 0.12", "0.2 0.15", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"🔐 Permissions: {totalPerms}", 12, "0.05 0.09", "0.2 0.12", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
         }
 
         private void CreateModernContentArea(CuiElementContainer container, BasePlayer player)
         {
             // Content background
-            UI.Panel(container, UIMain, uiColors["content"], "0.27 0.1", "0.98 0.9");
+            UI.Panel(container, GetUIMain(player), uiColors["content"], "0.27 0.1", "0.98 0.9");
             
             // Content header
-            UI.Panel(container, UIMain, uiColors["content_header"], "0.27 0.85", "0.98 0.9");
+            UI.Panel(container, GetUIMain(player), uiColors["content_header"], "0.27 0.85", "0.98 0.9");
             
             // Welcome message instead of default content
-            UI.Label(container, UIMain, "Добро пожаловать в Admin Menu!", 24, "0.3 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
-            UI.Label(container, UIMain, "Выберите раздел в боковом меню", 16, "0.3 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), "Добро пожаловать в Admin Menu!", 24, "0.3 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
+            UI.Label(container, GetUIMain(player), "Выберите раздел в боковом меню", 16, "0.3 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
         }
 
         private void CreateModernMenuButtons(CuiElementContainer container, MenuType menuType, BasePlayer player)
@@ -741,14 +741,14 @@ namespace Oxide.Plugins
             string bgColor = type == "error" ? uiColors["danger"] : type == "success" ? uiColors["success"] : uiColors["info"];
             string icon = type == "error" ? "❌" : type == "success" ? "✅" : "ℹ️";
             
-            CuiElementContainer container = UI.Container(UIPopup, bgColor, "0.3 0.85", "0.7 0.95");
+            CuiElementContainer container = UI.Container(GetUIPopup(player), bgColor, "0.3 0.85", "0.7 0.95");
             
             // Popup background with rounded effect
-            UI.Panel(container, UIPopup, bgColor, "0 0", "1 1");
+            UI.Panel(container, GetUIPopup(player), bgColor, "0 0", "1 1");
             
             // Icon and message
-            UI.Icon(container, UIPopup, icon, 20, "0.05 0.3", "0.15 0.7", uiColors["text_primary"]);
-            UI.Label(container, UIPopup, message, 16, "0.2 0.2", "0.95 0.8", TextAnchor.MiddleLeft, uiColors["text_primary"]);
+            UI.Icon(container, GetUIPopup(player), icon, 20, "0.05 0.3", "0.15 0.7", uiColors["text_primary"]);
+            UI.Label(container, GetUIPopup(player), message, 16, "0.2 0.2", "0.95 0.8", TextAnchor.MiddleLeft, uiColors["text_primary"]);
 
             Timer destroyIn;
             if (popupTimers.TryGetValue(player.userID, out destroyIn))
