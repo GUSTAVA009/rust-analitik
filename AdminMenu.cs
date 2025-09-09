@@ -416,9 +416,6 @@ namespace Oxide.Plugins
         {
             CuiElementContainer container = UI.Container(GetUIMain(player), uiColors["bg1"], "0.02 0.05", "0.98 0.95", true);
             
-            // Main background with gradient effect
-            UI.Panel(container, GetUIMain(player), uiColors["bg1"], "0 0", "1 1");
-            
             // Header section
             CreateModernHeader(container, player);
             
@@ -427,9 +424,6 @@ namespace Oxide.Plugins
             
             // Main content area
             CreateModernContentArea(container, player);
-            
-            // Create UIElement container for content
-            UI.Panel(container, GetUIMain(player), "0 0 0 0", "0.25 0.1", "0.98 0.85");
             
             CuiHelper.AddUi(player, container);
         }
@@ -454,23 +448,23 @@ namespace Oxide.Plugins
         private void CreateModernSidebar(CuiElementContainer container, BasePlayer player)
         {
             // Sidebar background
-            UI.Panel(container, GetUIMain(player), uiColors["sidebar"], "0 0.1", "0.25 0.9");
+            UI.Panel(container, GetUIMain(player), uiColors["sidebar"], "0 0.1", "0.24 0.9");
             
             // Navigation buttons
             float buttonHeight = 0.08f;
             float startY = 0.85f;
             
             // Commands button
-            CreateSidebarButton(container, "📋 COMMANDS", "0.02 0.77", "0.23 0.85", "amui.switchelement commands", MenuType.Commands, player);
+            CreateSidebarButton(container, "📋 COMMANDS", "0.02 0.77", "0.22 0.85", "amui.switchelement commands", MenuType.Commands, player);
             
             if (HasPermission(player.UserIDString, PERM_PERMISSION))
-                CreateSidebarButton(container, "🔐 PERMISSIONS", "0.02 0.68", "0.23 0.76", "amui.switchelement permissions", MenuType.Permissions, player);
+                CreateSidebarButton(container, "🔐 PERMISSIONS", "0.02 0.68", "0.22 0.76", "amui.switchelement permissions", MenuType.Permissions, player);
             
             if (HasPermission(player.UserIDString, GROUP_PERMISSION))
-                CreateSidebarButton(container, "👥 GROUPS", "0.02 0.59", "0.23 0.67", "amui.switchelement groups", MenuType.Groups, player);
+                CreateSidebarButton(container, "👥 GROUPS", "0.02 0.59", "0.22 0.67", "amui.switchelement groups", MenuType.Groups, player);
             
             if (HasPermission(player.UserIDString, CONVAR_PERMISSION))
-                CreateSidebarButton(container, "⚙️ CONVARS", "0.02 0.5", "0.23 0.58", "amui.switchelement convars", MenuType.Convars, player);
+                CreateSidebarButton(container, "⚙️ CONVARS", "0.02 0.5", "0.22 0.58", "amui.switchelement convars", MenuType.Convars, player);
             
             // Quick stats
             CreateQuickStats(container, player);
@@ -487,30 +481,30 @@ namespace Oxide.Plugins
         private void CreateQuickStats(CuiElementContainer container, BasePlayer player)
         {
             // Stats background
-            UI.Panel(container, GetUIMain(player), uiColors["card"], "0.02 0.1", "0.23 0.25");
+            UI.Panel(container, GetUIMain(player), uiColors["card"], "0.02 0.1", "0.22 0.45");
             
-            UI.Label(container, GetUIMain(player), "📊 QUICK STATS", 16, "0.05 0.2", "0.2 0.25", TextAnchor.MiddleLeft, uiColors["accent"]);
+            UI.Label(container, GetUIMain(player), "📊 QUICK STATS", 16, "0.05 0.4", "0.2 0.45", TextAnchor.MiddleLeft, uiColors["accent"]);
             
             int onlineCount = BasePlayer.activePlayerList.Count;
             int totalGroups = GetGroups().Count;
             int totalPerms = permissionList.Count;
             
-            UI.Label(container, GetUIMain(player), $"👥 Online: {onlineCount}", 12, "0.05 0.15", "0.2 0.18", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
-            UI.Label(container, GetUIMain(player), $"👥 Groups: {totalGroups}", 12, "0.05 0.12", "0.2 0.15", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
-            UI.Label(container, GetUIMain(player), $"🔐 Permissions: {totalPerms}", 12, "0.05 0.09", "0.2 0.12", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"👥 Online: {onlineCount}", 12, "0.05 0.35", "0.2 0.38", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"👥 Groups: {totalGroups}", 12, "0.05 0.32", "0.2 0.35", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"🔐 Permissions: {totalPerms}", 12, "0.05 0.29", "0.2 0.32", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
         }
 
         private void CreateModernContentArea(CuiElementContainer container, BasePlayer player)
         {
             // Content background
-            UI.Panel(container, GetUIMain(player), uiColors["content"], "0.27 0.1", "0.98 0.9");
+            UI.Panel(container, GetUIMain(player), uiColors["content"], "0.25 0.1", "0.98 0.9");
             
             // Content header
-            UI.Panel(container, GetUIMain(player), uiColors["content_header"], "0.27 0.85", "0.98 0.9");
+            UI.Panel(container, GetUIMain(player), uiColors["content_header"], "0.25 0.85", "0.98 0.9");
             
             // Welcome message instead of default content
-            UI.Label(container, GetUIMain(player), "Добро пожаловать в Admin Menu!", 24, "0.3 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
-            UI.Label(container, GetUIMain(player), "Выберите раздел в боковом меню", 16, "0.3 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), "Добро пожаловать в Admin Menu!", 24, "0.28 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
+            UI.Label(container, GetUIMain(player), "Выберите раздел в боковом меню", 16, "0.28 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
         }
 
         private void CreateModernMenuButtons(CuiElementContainer container, MenuType menuType, BasePlayer player)
@@ -755,7 +749,7 @@ namespace Oxide.Plugins
                 destroyIn.Destroy();
             popupTimers[player.userID] = timer.Once(5, () =>
             {
-                CuiHelper.DestroyUi(player, UIPopup);
+                CuiHelper.DestroyUi(player, GetUIPopup(player));
                 popupTimers.Remove(player.userID);
             });
 
