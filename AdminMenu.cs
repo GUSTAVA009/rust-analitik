@@ -748,7 +748,6 @@ namespace Oxide.Plugins
                 popupTimers.Remove(player.userID);
             });
 
-            CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.AddUi(player, container);
         }
 
@@ -1813,7 +1812,6 @@ namespace Oxide.Plugins
             
             // Also destroy any legacy containers
             CuiHelper.DestroyUi(player, UIMain);
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.DestroyUi(player, UIContent);
             CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.DestroyUi(player, UIContentCommands);
