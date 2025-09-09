@@ -440,12 +440,12 @@ namespace Oxide.Plugins
             ModernUI.Panel(container, UIMain, uiColors["header"], "0 0.9", "1 1");
             
             // Logo/Title area
-            ModernUI.UI_Label(container, UIMain, "⚡ ADMIN PANEL", 28, "0.02 0.92", "0.3 0.98", TextAnchor.MiddleLeft, uiColors["accent"]);
-            ModernUI.UI_Label(container, UIMain, $"v{Version}", 14, "0.02 0.9", "0.3 0.92", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, UIMain, "⚡ ADMIN PANEL", 28, "0.02 0.92", "0.3 0.98", TextAnchor.MiddleLeft, uiColors["accent"]);
+            UI.Label(container, UIMain, $"v{Version}", 14, "0.02 0.9", "0.3 0.92", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
             
             // User info
-            ModernUI.UI_Label(container, UIMain, $"👤 {player.displayName}", 16, "0.7 0.92", "0.98 0.98", TextAnchor.MiddleRight, uiColors["text_primary"]);
-            ModernUI.UI_Label(container, UIMain, $"🆔 {player.UserIDString}", 12, "0.7 0.9", "0.98 0.92", TextAnchor.MiddleRight, uiColors["text_secondary"]);
+            UI.Label(container, UIMain, $"👤 {player.displayName}", 16, "0.7 0.92", "0.98 0.98", TextAnchor.MiddleRight, uiColors["text_primary"]);
+            UI.Label(container, UIMain, $"🆔 {player.UserIDString}", 12, "0.7 0.9", "0.98 0.92", TextAnchor.MiddleRight, uiColors["text_secondary"]);
             
             // Close button
             ModernUI.ModernButton(container, UIMain, uiColors["danger"], uiColors["danger_hover"], "✕", 18, "0.95 0.92", "0.98 0.98", "amui.switchelement exit", TextAnchor.MiddleCenter, uiColors["text_primary"]);
@@ -489,15 +489,15 @@ namespace Oxide.Plugins
             // Stats background
             ModernUI.Panel(container, UIMain, uiColors["card"], "0.02 0.1", "0.23 0.25");
             
-            ModernUI.UI_Label(container, UIMain, "📊 QUICK STATS", 16, "0.05 0.2", "0.2 0.25", TextAnchor.MiddleLeft, uiColors["accent"]);
+            UI.Label(container, UIMain, "📊 QUICK STATS", 16, "0.05 0.2", "0.2 0.25", TextAnchor.MiddleLeft, uiColors["accent"]);
             
             int onlineCount = BasePlayer.activePlayerList.Count;
             int totalGroups = GetGroups().Count;
             int totalPerms = permissionList.Count;
             
-            ModernUI.UI_Label(container, UIMain, $"👥 Online: {onlineCount}", 12, "0.05 0.15", "0.2 0.18", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
-            ModernUI.UI_Label(container, UIMain, $"👥 Groups: {totalGroups}", 12, "0.05 0.12", "0.2 0.15", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
-            ModernUI.UI_Label(container, UIMain, $"🔐 Permissions: {totalPerms}", 12, "0.05 0.09", "0.2 0.12", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, UIMain, $"👥 Online: {onlineCount}", 12, "0.05 0.15", "0.2 0.18", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, UIMain, $"👥 Groups: {totalGroups}", 12, "0.05 0.12", "0.2 0.15", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, UIMain, $"🔐 Permissions: {totalPerms}", 12, "0.05 0.09", "0.2 0.12", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
         }
 
         private void CreateModernContentArea(CuiElementContainer container, BasePlayer player)
@@ -509,8 +509,8 @@ namespace Oxide.Plugins
             ModernUI.Panel(container, UIMain, uiColors["content_header"], "0.27 0.85", "0.98 0.9");
             
             // Welcome message instead of default content
-            ModernUI.UI_Label(container, UIMain, "Добро пожаловать в Admin Menu!", 24, "0.3 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
-            ModernUI.UI_Label(container, UIMain, "Выберите раздел в боковом меню", 16, "0.3 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
+            UI.Label(container, UIMain, "Добро пожаловать в Admin Menu!", 24, "0.3 0.4", "0.95 0.6", TextAnchor.MiddleCenter, uiColors["accent"]);
+            UI.Label(container, UIMain, "Выберите раздел в боковом меню", 16, "0.3 0.35", "0.95 0.4", TextAnchor.MiddleCenter, uiColors["text_secondary"]);
         }
 
         private void CreateModernMenuButtons(CuiElementContainer container, MenuType menuType, BasePlayer player)
@@ -676,7 +676,7 @@ namespace Oxide.Plugins
             ModernUI.Panel(container, GetUIMain(player), uiColors["pagination"], "0.02 0.01", "0.98 0.05");
 
             // Page info
-            ModernUI.UI_Label(container, GetUIMain(player), $"Page {currentPage + 1} of {totalPages} ({totalItems} items)", 12, "0.02 0.02", "0.3 0.04", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
+            UI.Label(container, GetUIMain(player), $"Page {currentPage + 1} of {totalPages} ({totalItems} items)", 12, "0.02 0.02", "0.3 0.04", TextAnchor.MiddleLeft, uiColors["text_secondary"]);
 
             // Navigation buttons
             if (currentPage > 0)
@@ -697,7 +697,7 @@ namespace Oxide.Plugins
             // Filter background
             ModernUI.Panel(container, GetUIMain(player), uiColors["filter_bg"], "0.02 0.06", "0.98 0.09");
             
-            ModernUI.UI_Label(container, GetUIMain(player), "🔍 Filter:", 14, "0.02 0.07", "0.1 0.08", TextAnchor.MiddleLeft, uiColors["text_primary"]);
+            UI.Label(container, GetUIMain(player), "🔍 Filter:", 14, "0.02 0.07", "0.1 0.08", TextAnchor.MiddleLeft, uiColors["text_primary"]);
 
             float buttonWidth = 0.03f;
             float startX = 0.12f;
