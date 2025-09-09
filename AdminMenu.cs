@@ -748,7 +748,6 @@ namespace Oxide.Plugins
                 popupTimers.Remove(player.userID);
             });
 
-            CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.AddUi(player, container);
         }
 
@@ -785,9 +784,6 @@ namespace Oxide.Plugins
                 }                
             }
             else CreateCommandEntry(container, subType, page, player);
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private void CreateGiveMenu(CuiElementContainer container, ItemType itemType, int page, BasePlayer player)
@@ -967,7 +963,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
 
@@ -1574,7 +1569,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
 
@@ -1613,7 +1607,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
 
@@ -1650,7 +1643,6 @@ namespace Oxide.Plugins
                     break;
             }
 
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.AddUi(player, container);
         }
         #endregion
@@ -1813,7 +1805,6 @@ namespace Oxide.Plugins
             
             // Also destroy any legacy containers
             CuiHelper.DestroyUi(player, UIMain);
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.DestroyUi(player, UIContent);
             CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.DestroyUi(player, UIContentCommands);
