@@ -748,11 +748,10 @@ namespace Oxide.Plugins
                 popupTimers.Remove(player.userID);
             });
 
-            CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.AddUi(player, container);
         }
 
-        private void CreateMenuCommands(CuiElementContainer container, BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
+        private void CreateMenuCommandsContent(CuiElementContainer container, BasePlayer player, CommSub subType, int page = 0, ItemType itemType = ItemType.Weapon)
         {
             CreateModernMenuButtons(container, MenuType.Commands, player);
             CreateCommandTabs(container, player);
@@ -785,9 +784,6 @@ namespace Oxide.Plugins
                 }                
             }
             else CreateCommandEntry(container, subType, page, player);
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private void CreateGiveMenu(CuiElementContainer container, ItemType itemType, int page, BasePlayer player)
@@ -966,9 +962,6 @@ namespace Oxide.Plugins
                 if (count >= 72)
                     break;
             }
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private enum PlayerAction { Ban, Kick, Kill, MuteChat, UnmuteChat, StripInventory, ResetBlueprints, GiveBlueprints, ResetMetabolism, Hurt25, Hurt50, Hurt75, Heal25, Heal50, Heal75, Heal100, TeleportSelfTo, Permissions }
@@ -998,7 +991,7 @@ namespace Oxide.Plugins
             CreateModernContentArea(container, player);
             
             // Add commands content
-            CreateMenuCommands(container, player, subType, page, itemType);
+            CreateMenuCommandsContent(container, player, subType, page, itemType);
             
             CuiHelper.AddUi(player, container);
             Puts($"New UI added for {player.displayName}");
@@ -1573,9 +1566,6 @@ namespace Oxide.Plugins
                 if (count >= 72)
                     break;
             }
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private void OpenGroupViewMenu(BasePlayer player, string groupName, int page)
@@ -1612,9 +1602,6 @@ namespace Oxide.Plugins
                 if (count >= 72)
                     break;
             }
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
 
         private void OpenGroupMenu(BasePlayer player, string userId, string userName, string description, int page)
@@ -1649,9 +1636,6 @@ namespace Oxide.Plugins
                 if (count >= 72)
                     break;
             }
-
-            CuiHelper.DestroyUi(player, GetUIElement(player));
-            CuiHelper.AddUi(player, container);
         }
         #endregion
         #endregion
@@ -1813,7 +1797,6 @@ namespace Oxide.Plugins
             
             // Also destroy any legacy containers
             CuiHelper.DestroyUi(player, UIMain);
-            CuiHelper.DestroyUi(player, GetUIElement(player));
             CuiHelper.DestroyUi(player, UIContent);
             CuiHelper.DestroyUi(player, UIPopup);
             CuiHelper.DestroyUi(player, UIContentCommands);
