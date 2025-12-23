@@ -1,0 +1,12 @@
+{
+  "EnableRestriction": true,
+  "RestrictionDurationMinutes": 10,
+  "RestrictedVehicles": [
+    "minicopter",
+    "hotairballoon",
+    "transporthelicopter",
+    "attackhelicopter"
+  ],
+  "RestrictionMessage": "Chinook locked crate is temporarily restricted after transport vehicle destruction.",
+  "NotifyOnRestriction": true
+}
