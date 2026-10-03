@@ -1,0 +1,9 @@
+{
+  "NoPermission": "You don't have permission to use this command.",
+  "NotAuthorized": "You are not authorized to access this cupboard.",
+  "StackChanged": "Stack amount changed to {0} for {1}",
+  "CupboardStackEditor": "Cupboard Stack Editor",
+  "CurrentItems": "Current Items:",
+  "Close": "Close",
+  "Stack": "STACK"
+}
