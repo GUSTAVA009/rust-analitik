@@ -1,0 +1,87 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src &#x27;none&#x27;; script-src &#x27;sha256-gnum9FfNnnNRm1iyxmVkyvE4ZFIC8bujfcoLVn9gG7Q=&#x27; &#x27;sha256-CI7ZmuOJYSHZxzIFgCC4nthavQgI6gBri26BZRF8eJg=&#x27;; style-src &#x27;unsafe-inline&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;; object-src &#x27;none&#x27;"><title>HAPYCH · подключение ВК</title><style>
+:root{font-family:system-ui,sans-serif;color:#f7f9fc;background:#111820;color-scheme:dark}body{margin:0;padding:24px}main{max-width:680px;margin:5vh auto;padding:28px;background:#1a2430;border:1px solid #344456;border-radius:20px}h1{font-size:28px;margin:0 0 16px}p,li{line-height:1.55;color:#dbe5ee}button,a.button{display:inline-block;font:inherit;font-weight:600;color:#fff;background:#0077ff;border:0;border-radius:12px;padding:14px 18px;margin:8px 8px 8px 0;cursor:pointer;text-decoration:none}button:disabled{opacity:.4;cursor:default}#download{background:#188653}#status{padding:16px;background:#101a25;border-radius:12px;overflow-wrap:anywhere}code{color:#efc877;font-size:14px}small{color:#aab9c6;line-height:1.5;display:block}a{color:#81b8ff}[hidden]{display:none!important}
+</style></head><body><main><h1>HAPYCH · подключение ВК</h1><p>Выдайте приложению право загружать фотографии и публиковать записи. Используйте аккаунт, который управляет сообществом <b>hapychrust</b>.</p><button id="connect" type="button" disabled>Разрешить доступ ВК</button><button id="download" type="button" hidden>Скачать файл ключа</button><p id="status" role="status" aria-live="polite">Подготовка…</p><p>Файл загрузите в <code>oxide/data/HapychAutoWipe/VK.user-token.json</code>, затем в консоли сервера выполните <code>hapychwipe.vk import</code> в версии 2.1.21.</p><small>Ключ остаётся в вашем браузере до скачивания. Страница не отправляет его в Render, GitHub или ChatGPT. Запросы на проверку идут в ВК через официальную библиотеку VK Bridge 3.0.2. Доступ может иметь срок действия. Тестовые посты и фотографии не создаются.</small><p><a href="https://vk.ru/app54802335" target="_blank" rel="noopener noreferrer">Открыть приложение в ВК</a></p></main><script>(()=>{"use strict";let e;var t={};let p="u">typeof window,n=!!(p&&window.AndroidBridge),o=!!(p&&window.webkit?.messageHandlers?.VKWebAppClose),r=!!(p&&window.ReactNativeWebView&&"function"==typeof window.ReactNativeWebView.postMessage),i=p&&!n&&!o,a=i&&/(^\?|&)vk_platform=mobile_web(&|$)/.test(location.search),s=i?"message":"VKWebAppEvent",d=["VKWebAppInit","VKWebAppGetCommunityAuthToken","VKWebAppAddToCommunity","VKWebAppAddToHomeScreenInfo","VKWebAppClose","VKWebAppCopyText","VKWebAppCreateHash","VKWebAppGetUserInfo","VKWebAppSetLocation","VKWebAppSendToClient","VKWebAppGetClientVersion","VKWebAppGetPhoneNumber","VKWebAppGetEmail","VKWebAppGetGroupInfo","VKWebAppGetGeodata","VKWebAppGetCommunityToken","VKWebAppGetConfig","VKWebAppGetLaunchParams","VKWebAppSetTitle","VKWebAppGetAuthToken","VKWebAppCallAPIMethod","VKWebAppJoinGroup","VKWebAppLeaveGroup","VKWebAppAllowMessagesFromGroup","VKWebAppDenyNotifications","VKWebAppAllowNotifications","VKWebAppOpenPayForm","VKWebAppOpenApp","VKWebAppShare","VKWebAppShowWallPostBox","VKWebAppScroll","VKWebAppShowOrderBox","VKWebAppShowLeaderBoardBox","VKWebAppShowInviteBox","VKWebAppShowRequestBox","VKWebAppAddToFavorites","VKWebAppShowStoryBox","VKWebAppStorageGet","VKWebAppStorageGetKeys","VKWebAppStorageSet","VKWebAppFlashGetInfo","VKWebAppSubscribeStoryApp","VKWebAppOpenWallPost","VKWebAppCheckAllowedScopes","VKWebAppCheckBannerAd","VKWebAppHideBannerAd","VKWebAppShowBannerAd","VKWebAppCheckNativeAds","VKWebAppShowNativeAds","VKWebAppRetargetingPixel","VKWebAppConversionHit","VKWebAppShowSubscriptionBox","VKWebAppCheckSurvey","VKWebAppShowSurvey","VKWebAppScrollTop","VKWebAppScrollTopStart","VKWebAppScrollTopStop","VKWebAppShowSlidesSheet","VKWebAppTranslate","VKWebAppRecommend","VKWebAppAddToProfile","VKWebAppGetFriends",...i&&!a?["VKWebAppResizeWindow","VKWebAppAddToMenu","VKWebAppShowInstallPushBox","VKWebAppShowCommunityWidgetPreviewBox","VKWebAppCallStart","VKWebAppCallJoin","VKWebAppCallGetStatus"]:["VKWebAppShowImages"]],A=p?window.AndroidBridge:void 0,b=o?window.webkit.messageHandlers:void 0,l=i?parent:void 0,u=function(t){var p;let a,u,W,V,K=[],c=Math.random().toString(36).substring(2,5);function w(e){K.push(e)}function S(e){return n?!!(A&&"function"==typeof A[e]):o?!!(b?.[e]&&"function"==typeof b[e].postMessage):!!i&&d.includes(e)}function f(){return o||n}function h(){return i&&window.parent!==window}function g(){return f()||h()}function v(e){if(o||n)return[...K].map(t=>t.call(null,e));let t=e?.data;if(!i||!t)return;if(r&&"string"==typeof t)try{t=JSON.parse(t)}catch{}let{type:p,data:s,frameId:d}=t;if(p){if("VKWebAppSettings"===p){a=d;return}[...K].map(e=>e({detail:{type:p,data:s}}))}}r&&/(android)/i.test(navigator.userAgent)?document.addEventListener(s,v):"u">typeof window&&"addEventListener"in window&&window.addEventListener(s,v);let y=(p=function(e,p){A?.[e]?A[e](JSON.stringify(p)):b?.[e]&&"function"==typeof b[e].postMessage?b[e].postMessage?.(p):r?window.ReactNativeWebView.postMessage(JSON.stringify({handler:e,params:p})):l&&"function"==typeof l.postMessage&&l.postMessage({handler:e,params:p,type:"vk-connect",webFrameId:a,connectVersion:t},"*")},u={current:0,next(){return++this.current}},W={},V={add(e,t){let p=null!=t?t:`${u.next()}_${c}`;return W[p]=e,p},resolve(e,t,p){let n=W[e];n&&(p(t)?n.resolve(t):n.reject(t),W[e]=null)}},w(e=>{if(e.detail?.data&&"object"==typeof e.detail.data&&"request_id"in e.detail.data){let{request_id:t,...p}=e.detail.data;t&&V.resolve(t,p,e=>!("error_type"in e))}}),function(e,t={}){return new Promise((n,o)=>{let r=V.add({resolve:n,reject:o},t.request_id);p(e,{...t,request_id:r})})});async function m(t){if(n||o)return S(t);if(e)return e.has(t);try{let t=await y("SetSupportedHandlers");e=new Set(t.supportedHandlers)}catch(t){e=new Set(["VKWebAppInit"])}return e.has(t)}return w(t=>{t.detail&&"SetSupportedHandlers"===t.detail.type&&(e=new Set(t.detail.data.supportedHandlers))}),{send:y,sendPromise:y,subscribe:w,unsubscribe:function(e){let t=K.indexOf(e);t>-1&&K.splice(t,1)},supports:function(e){return console.warn("bridge.supports method is deprecated. Use bridge.supportsAsync instead."),S(e)},supportsAsync:m,isWebView:f,isIframe:h,isEmbedded:g,isStandalone:function(){return!g()}}}("3.0.2");window.vkBridge=window.vkConnect=u;var W=window;for(var V in t)W[V]=t[V];t.__esModule&&Object.defineProperty(W,"__esModule",{value:!0})})();
+//# sourceMappingURL=browser.min.js.map</script><script>(() => {
+  'use strict';
+  const APP_ID = 54802335;
+  const API_VERSION = '5.199';
+  const status = document.getElementById('status');
+  const connect = document.getElementById('connect');
+  const download = document.getElementById('download');
+  let tokenFile = null;
+  const show = text => { status.textContent = text; };
+  const bridge = window.vkBridge;
+  const embedded = Boolean(bridge && bridge.isEmbedded());
+  const launchedId = new URLSearchParams(location.search).get('vk_app_id');
+  const canConnect = embedded && launchedId === String(APP_ID);
+  function withTimeout(promise) {
+    let timer;
+    return Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timeout')), 25000);
+    })]).finally(() => clearTimeout(timer));
+  }
+  async function api(method, params, token) {
+    const result = await withTimeout(bridge.send('VKWebAppCallAPIMethod', {
+      method, params: Object.assign({}, params, { access_token: token, v: API_VERSION })
+    }));
+    if (!result || !Object.prototype.hasOwnProperty.call(result, 'response')) throw new Error('api');
+    return result.response;
+  }
+  async function authorize() {
+    if (!canConnect) return;
+    connect.disabled = true;
+    download.hidden = true;
+    tokenFile = null;
+    show('Ожидаю разрешение ВКонтакте на фотографии и публикации…');
+    try {
+      await withTimeout(bridge.send('VKWebAppInit'));
+      const auth = await withTimeout(bridge.send('VKWebAppGetAuthToken', { app_id: APP_ID, scope: 'photos,wall' }));
+      const token = auth && auth.access_token;
+      if (typeof token !== 'string' || token.length < 20 || token.length > 8192 || /\s|[\u0000-\u001f\u007f]/.test(token)) throw new Error('token');
+      show('Проверяю разрешения и сообщество hapychrust…');
+      const permissions = await api('account.getAppPermissions', {}, token);
+      if (!Number.isSafeInteger(permissions) || (permissions & 4) === 0 || (permissions & 8192) === 0) throw new Error('permissions');
+      const community = await api('utils.resolveScreenName', { screen_name: 'hapychrust' }, token);
+      if (!community || !Number.isSafeInteger(community.object_id) || community.object_id <= 0 || !['group', 'page'].includes(community.type)) throw new Error('community');
+      const upload = await api('photos.getWallUploadServer', { group_id: community.object_id }, token);
+      if (!upload || typeof upload.upload_url !== 'string' || !upload.upload_url.startsWith('https://')) throw new Error('upload');
+      tokenFile = { UserAccessToken: token, AppId: APP_ID, GrantedScope: 'photos,wall' };
+      if (typeof auth.expires === 'number') tokenFile.VkExpires = auth.expires;
+      download.hidden = false;
+      show('Ключ получен и проверен. Скачайте VK.user-token.json, загрузите его в oxide/data/HapychAutoWipe/ и выполните hapychwipe.vk import. Фактическая публикация на стене будет подтверждена плагином по post_id. ВК может ограничивать срок действия ключа; если он будет отозван или истечёт, доступ нужно выдать повторно.');
+    } catch (error) {
+      const own = {
+        timeout: 'ВК не ответил вовремя. Повторите подключение.',
+        token: 'ВК не выдал пользовательский ключ нужного формата.',
+        permissions: 'Ключ не получил оба разрешения photos и wall.',
+        community: 'ВК не подтвердил сообщество hapychrust.',
+        upload: 'ВК не предоставил адрес загрузки фотографии для сообщества.',
+        api: 'ВК не подтвердил результат запроса.'
+      };
+      let message = own[error && error.message];
+      if (!message) {
+        const code = error && error.error_data && Number(error.error_data.error_code);
+        message = 'ВК отклонил запрос' + (Number.isFinite(code) ? ' (код ' + code + ')' : '')
+          + '. Если разрешение wall недоступно этому приложению, требуется разрешённый ВК способ авторизации для wall.post.';
+      }
+      show(message);
+    } finally { connect.disabled = !canConnect; }
+  }
+  connect.disabled = !canConnect;
+  connect.addEventListener('click', authorize);
+  download.addEventListener('click', () => {
+    if (!tokenFile) return;
+    const blob = new Blob([JSON.stringify(tokenFile, null, 2) + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'VK.user-token.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  show(canConnect ? 'Открыто приложение HAPYCH. Разрешите доступ со своего аккаунта администратора или редактора сообщества.'
+    : 'Для подключения откройте эту страницу внутри приложения ВКонтакте 54802335. Сначала укажите адрес этой страницы в разделе «Размещение» приложения и включите размещение.');
+})();
+</script></body></html>
