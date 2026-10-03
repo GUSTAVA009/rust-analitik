@@ -1,0 +1,13 @@
+{
+  "name": "hapych-telegram-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telegram Bot API relay for HapychAutoWipe",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
