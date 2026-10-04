@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -21,7 +24,6 @@ jobs:
           sed -i '/import androidx.compose.foundation.layout.Column/a import androidx.compose.foundation.layout.ColumnScope' hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
           sed -i 's/content: @Composable Column\.() -> Unit/content: @Composable ColumnScope.() -> Unit/' hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
 
-          # Unique HAPYCH package ID; keep source namespace stable and use explicit Activity class.
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
           sed -i 's/versionCode = 1/versionCode = 3/' hapych-admin/app/build.gradle.kts
@@ -33,14 +35,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK packages
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
 
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
