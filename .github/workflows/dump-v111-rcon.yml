@@ -13,4 +13,4 @@ jobs:
         shell: bash
         run: |
           cat hapych-admin-v111/RconClient.part*.b64 | base64 -d | gzip -d > /tmp/RconClient.kt
-          nl -ba /tmp/RconClient.kt | sed -n '1,760p'
+          nl -ba /tmp/RconClient.kt | sed -n '109,340p'
