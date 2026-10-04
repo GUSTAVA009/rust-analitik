@@ -5,6 +5,7 @@ const WebSocket = require("ws");
 const PORT = Number(process.env.PORT || 10000);
 const RCON_HOST = process.env.RCON_HOST || "";
 const RCON_PORT = Number(process.env.RCON_PORT || 0);
+const HEALTH_RCON_PASSWORD = process.env.RCON_PASSWORD || "";
 
 if (!RCON_HOST || !RCON_PORT) {
   console.error("Missing RCON_HOST or RCON_PORT");
@@ -57,11 +58,7 @@ function tcpHealth(callback) {
     if (done) return;
     done = true;
     try { socket.destroy(); } catch {}
-    callback({
-      ok,
-      latencyMs: Date.now() - started,
-      error
-    });
+    callback({ ok, latencyMs: Date.now() - started, error });
   };
   socket.setTimeout(3500);
   socket.once("connect", () => finish(true));
@@ -69,13 +66,71 @@ function tcpHealth(callback) {
   socket.once("error", err => finish(false, err && err.message ? err.message : "tcp error"));
 }
 
+function authenticatedHealth(callback) {
+  if (!HEALTH_RCON_PASSWORD) {
+    tcpHealth(result => callback({...result, auth: "not_configured"}));
+    return;
+  }
+
+  const started = Date.now();
+  const ws = newUpstream(HEALTH_RCON_PASSWORD);
+  let done = false;
+  const finish = (ok, state, error = null) => {
+    if (done) return;
+    done = true;
+    try { ws.terminate(); } catch {}
+    callback({
+      ok,
+      state,
+      auth: ok ? "accepted" : "failed",
+      latencyMs: Date.now() - started,
+      error
+    });
+  };
+
+  const timer = setTimeout(() => finish(false, "timeout", "Rust WebRCON auth probe timed out"), 10000);
+
+  ws.once("open", () => {
+    const id = 970001;
+    ws.send(JSON.stringify({
+      Identifier: id,
+      Message: "serverinfo",
+      Name: "HAPYCH Relay Health"
+    }));
+  });
+
+  ws.on("message", data => {
+    const text = data.toString();
+    try {
+      const msg = JSON.parse(text);
+      const message = String(msg && msg.Message || "");
+      if (msg && (msg.Identifier === 970001 || message.includes("Hostname"))) {
+        clearTimeout(timer);
+        finish(true, "ready", null);
+      }
+    } catch {}
+  });
+
+  ws.once("close", (code, reason) => {
+    clearTimeout(timer);
+    finish(false, "closed", `code=${code} reason=${reason.toString().slice(0,120)}`);
+  });
+
+  ws.once("error", err => {
+    clearTimeout(timer);
+    finish(false, "error", err && err.message ? err.message : "WebRCON error");
+  });
+}
+
 const server = http.createServer((req, res) => {
   if (req.url === "/health") {
-    tcpHealth(result => {
+    authenticatedHealth(result => {
       res.writeHead(result.ok ? 200 : 503, {"content-type":"application/json; charset=utf-8"});
       res.end(JSON.stringify({
         service: "HAPYCH RCON Relay",
         status: result.ok ? "ready" : "upstream_unreachable",
+        auth: result.auth || "unknown",
+        state: result.state || null,
         rconHost: RCON_HOST,
         rconPort: RCON_PORT,
         latencyMs: result.latencyMs,
