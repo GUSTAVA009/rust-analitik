@@ -1,0 +1,42 @@
+--- MainActivity.kt
++++ MainActivity.kt
+@@ -1051,7 +1051,7 @@
+                 Spacer(Modifier.width(9.dp))
+                 Column {
+                     Text("RCON-порт найдётся автоматически", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+-                    Text("Укажи IP и игровой порт — HAPYCH Admin проверит соседние TCP-порты и сам определит WebRCON/Legacy.", color = TextSecondary, fontSize = 9.sp, lineHeight = 13.sp)
++                    Text("Укажи IP и игровой порт — HAPYCH Admin быстро проверит типичные RCON-порты и остановится после ограниченного списка.", color = TextSecondary, fontSize = 9.sp, lineHeight = 13.sp)
+                 }
+             }
+             Spacer(Modifier.height(8.dp))
+@@ -1113,14 +1113,26 @@
+                 Text("Сохранить", color = Orange)
+             }
+             Button(
+-                onClick = { onConnect(current()) },
++                onClick = {
++                    if (connection == ConnectionState.CONNECTING) onDisconnect() else onConnect(current())
++                },
+                 modifier = Modifier.weight(1f),
+                 shape = RoundedCornerShape(14.dp),
+-                colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Color.Black)
++                colors = ButtonDefaults.buttonColors(
++                    containerColor = if (connection == ConnectionState.CONNECTING) Red else Orange,
++                    contentColor = Color.Black
++                )
+             ) {
+-                Icon(Icons.Rounded.PlayArrow, null)
++                Icon(if (connection == ConnectionState.CONNECTING) Icons.Rounded.Close else Icons.Rounded.PlayArrow, null)
+                 Spacer(Modifier.width(7.dp))
+-                Text(if (demo) "Demo" else "Подключить", fontWeight = FontWeight.Bold)
++                Text(
++                    when {
++                        connection == ConnectionState.CONNECTING -> "Остановить"
++                        demo -> "Demo"
++                        else -> "Подключить"
++                    },
++                    fontWeight = FontWeight.Bold
++                )
+             }
+         }
+         if (connection == ConnectionState.CONNECTED) {
