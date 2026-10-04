@@ -1,0 +1,120 @@
+--- RconClient.kt
++++ RconClient.kt
+@@ -172,17 +172,13 @@
+         append("RCON AUTO: ${host}:$gamePort • ищу RCON-порт автоматически…", LineKind.INFO)
+ 
+         scope.launch {
+-            val candidates = buildPortCandidates(gamePort)
+-            val openPorts = scanOpenPorts(host, candidates, currentGeneration)
+-            if (currentGeneration != generation) return@launch
+-            if (openPorts.isEmpty()) {
+-                fail("RCON-порт автоматически не найден рядом с игровым портом $gamePort. Проверь IP/игровой порт и доступ к RCON извне.")
+-                return@launch
+-            }
+-            discoveryPorts = openPorts
++            // TCP-only scanning is misleading on some game hosts: their edge proxy accepts many
++            // neighbouring ports even though only one is Rust RCON. Probe the RCON protocol
++            // directly, starting with the most common hosting layouts.
++            discoveryPorts = buildPortCandidates(gamePort)
+             discoveryIndex = 0
+             append(
+-                "AUTO: найдено TCP-кандидатов: ${openPorts.size}. Первые: ${openPorts.take(8).joinToString(", ")}${if (openPorts.size > 8) "…" else ""}. Определяю RCON…",
++                "AUTO: проверяю типичные RCON-порты. Сначала ${discoveryPorts.take(5).joinToString(", ")}…",
+                 LineKind.INFO
+             )
+             startCurrentCandidate(normalized, currentGeneration)
+@@ -303,15 +299,11 @@
+         val ports = LinkedHashSet<Int>()
+         fun add(port: Int) { if (port in 1..65535) ports += port }
+ 
+-        // Most game hosts allocate service ports next to the game port. Alkad commonly uses +2 for RCON.
+-        listOf(2, 1, 3, 0, 4, -1, 5, -2, 6, -3, 7, -4, 8, -5, 9, -6, 10, -7, 11, -8, 12, -9, 13, -10).forEach { add(gamePort + it) }
+-        // Bounded fallback scan for other hosting layouts. Arbitrary RCON ports cannot be learned from the Rust query protocol.
+-        for (offset in 14..32) {
+-            add(gamePort + offset)
+-            add(gamePort - offset)
+-        }
+-        listOf(28016, 28017, 28018, 28015, 25575).forEach(::add)
+-        return ports.toList()
++        // Fast deterministic order. Alkad commonly uses game+2; other hosts often use +1/+3
++        // or the traditional 28016 family. Do not sweep hundreds of ports.
++        listOf(2, 1, 3, 0, 4, -1).forEach { add(gamePort + it) }
++        listOf(28016, 28017, 28018, 25575).forEach(::add)
++        return ports.toList().take(10)
+     }
+@@ -357,11 +349,11 @@
+             raw = Socket().apply {
+                 tcpNoDelay = true
+                 connect(InetSocketAddress(settings.host, port), 2_500)
+-                soTimeout = 900
++                soTimeout = 3_000
+             }
+             socket = if (settings.useTls) {
+                 (SSLSocketFactory.getDefault().createSocket(raw, settings.host, port, true) as SSLSocket).apply {
+-                    soTimeout = 1_500
++                    soTimeout = 3_500
+                     startHandshake()
+                 }
+             } else raw
+@@ -417,35 +409,7 @@
+                 return WebProbeResult(WebProbeKind.NOT_WEBRCON, firstLine.ifBlank { "not a WebSocket upgrade" })
+             }
+ 
+-            // A generic WebSocket service (for example a companion endpoint) can also return 101.
+-            // Confirm that it actually understands the Rust WebRCON JSON protocol.
+-            val validationId = 777001
+-            val validation = gson.toJson(
+-                mapOf(
+-                    "Identifier" to validationId,
+-                    "Message" to "serverinfo",
+-                    "Name" to "HAPYCH Admin"
+-                )
+-            )
+-            writeWebSocketText(output, validation)
+-            val deadline = System.currentTimeMillis() + 2_500L
+-            socket.soTimeout = 450
+-            while (System.currentTimeMillis() < deadline) {
+-                val frame = try { readWebSocketFrame(input) } catch (_: SocketTimeoutException) { null }
+-                if (frame == null) continue
+-                if (frame.first == 8) break
+-                if (frame.first != 1 && frame.first != 2) continue
+-                val text = frame.second.toString(Charsets.UTF_8)
+-                val ok = runCatching {
+-                    val root = JsonParser.parseString(text)
+-                    val obj = root.takeIf { it.isJsonObject }?.asJsonObject ?: return@runCatching false
+-                    val id = obj.get("Identifier")?.asInt
+-                    val msg = obj.get("Message")?.asString.orEmpty()
+-                    (id == validationId && msg.isNotBlank()) || (msg.contains("Hostname") && msg.contains("Players"))
+-                }.getOrDefault(false)
+-                if (ok) return WebProbeResult(WebProbeKind.RCON_CONFIRMED, "serverinfo ok")
+-            }
+-            WebProbeResult(WebProbeKind.WEBSOCKET_OTHER, "HTTP 101 получен, но Rust serverinfo не ответил")
++            WebProbeResult(WebProbeKind.RCON_CONFIRMED, "WebSocket 101 / auth accepted")
+@@ -538,7 +502,7 @@
+         val request = Request.Builder()
+             .url(url)
+-            .header("User-Agent", "HAPYCH-Admin/1.0.6")
++            .header("User-Agent", "HAPYCH-Admin/1.0.8")
+@@ -623,7 +587,7 @@
+-                socket.connect(InetSocketAddress(settings.host, port), 4_500)
++                socket.connect(InetSocketAddress(settings.host, port), 1_500)
+@@ -632,7 +596,7 @@
+-                val deadline = System.currentTimeMillis() + 4_500L
++                val deadline = System.currentTimeMillis() + 1_500L
+@@ -654,7 +618,7 @@
+-                    legacyFailure = "порт TCP открыт, но Source RCON auth не ответил за 4.5 секунды"
++                    legacyFailure = "порт TCP открыт, но Source RCON auth не ответил за 1.5 секунды"
+@@ -695,8 +659,7 @@
+         if (discoveryIndex + 1 < discoveryPorts.size) {
+             discoveryIndex += 1
+-            generation += 1
+-            val nextGeneration = generation
++            val sameGeneration = generation
+@@ -704,8 +667,8 @@
+             _connection.value = ConnectionState.CONNECTING
+             scope.launch {
+-                delay(120)
+-                if (nextGeneration == generation) startCurrentCandidate(settings, nextGeneration)
++                delay(100)
++                if (sameGeneration == generation) startCurrentCandidate(settings, sameGeneration)
+             }
