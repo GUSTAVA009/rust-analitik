@@ -22,11 +22,18 @@ jobs:
           mkdir -p hapych-admin
           unzip -q HAPYCH-Admin-source.zip -d hapych-admin
 
-          # v1.0.5 overrides: universal ports, protocol selector and detailed RCON diagnostics.
+          # Start from the stable v1.0.5 RCON implementation.
           cat hapych-admin-overrides-v105/RconClient.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
           cat hapych-admin-overrides-v105/MainActivity.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
           cp hapych-admin-overrides-v105/Models.kt hapych-admin/app/src/main/java/com/hapych/admin/Models.kt
           cp hapych-admin-overrides-v105/SecurePrefs.kt hapych-admin/app/src/main/java/com/hapych/admin/SecurePrefs.kt
+
+          # v1.0.6: user enters IP/domain + GAME port + RCON password last.
+          # RCON port is discovered automatically and WebRCON/Legacy are detected automatically.
+          for p in main rcon models secure; do
+            base64 -d "hapych-admin-overrides-v106/$p.patch.gz.b64" | gzip -d > "/tmp/$p.patch"
+            patch -d hapych-admin -p3 < "/tmp/$p.patch"
+          done
 
           # HAPYCH identity/version.
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
