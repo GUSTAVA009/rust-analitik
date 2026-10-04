@@ -1,0 +1,59 @@
+name: Build HAPYCH Admin APK
+
+on:
+  push:
+    branches: [hapych-admin-app]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Restore HAPYCH Admin source
+        shell: bash
+        run: |
+          cat hapych-admin-b64/part-* | tr -d '\n' | base64 -d > HAPYCH-Admin-v1.0-source.zip
+          mkdir -p hapych-admin
+          unzip -q HAPYCH-Admin-v1.0-source.zip -d hapych-admin
+          sed -i '/import androidx.compose.foundation.layout.Column/a import androidx.compose.foundation.layout.ColumnScope' hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
+          sed -i 's/content: @Composable Column\.() -> Unit/content: @Composable ColumnScope.() -> Unit/' hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build APK
+        working-directory: hapych-admin
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose hapych-admin/app/build/outputs/apk/debug/app-debug.apk
+          cp hapych-admin/app/build/outputs/apk/debug/app-debug.apk HAPYCH-Admin-v1.0.apk
+          sha256sum HAPYCH-Admin-v1.0.apk > HAPYCH-Admin-v1.0.apk.sha256
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAPYCH-Admin-v1.0
+          path: |
+            HAPYCH-Admin-v1.0.apk
+            HAPYCH-Admin-v1.0.apk.sha256
+          if-no-files-found: error
