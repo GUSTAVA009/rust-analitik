@@ -1,0 +1,104 @@
+name: Probe HAPYCH RCON
+
+on:
+  push:
+    branches: [hapych-admin-app]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe TCP WebRCON Legacy and TLS
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import socket, ssl, struct, os, base64, time
+
+          HOST = "46.174.50.175"
+          PORTS = [20530, 20531, 20532, 20533, 20534]
+          TIMEOUT = 4
+
+          def tcp_probe(port):
+              t=time.time()
+              try:
+                  with socket.create_connection((HOST, port), timeout=TIMEOUT):
+                      return f"OPEN {time.time()-t:.2f}s"
+              except Exception as e:
+                  return f"FAIL {type(e).__name__}: {e}"
+
+          def ws_probe(port):
+              key = base64.b64encode(os.urandom(16)).decode()
+              req = (
+                  f"GET /HAPYCH_PROBE_BAD_PASSWORD HTTP/1.1\r\n"
+                  f"Host: {HOST}:{port}\r\n"
+                  "Upgrade: websocket\r\n"
+                  "Connection: Upgrade\r\n"
+                  f"Sec-WebSocket-Key: {key}\r\n"
+                  "Sec-WebSocket-Version: 13\r\n"
+                  "Origin: http://localhost\r\n\r\n"
+              ).encode()
+              try:
+                  with socket.create_connection((HOST, port), timeout=TIMEOUT) as s:
+                      s.settimeout(TIMEOUT)
+                      s.sendall(req)
+                      data=s.recv(4096)
+                      if not data:
+                          return "CLOSED with no HTTP response"
+                      return data.decode("latin1","replace").split("\r\n\r\n")[0][:1000]
+              except Exception as e:
+                  return f"{type(e).__name__}: {e}"
+
+          def tls_probe(port):
+              ctx=ssl.create_default_context()
+              ctx.check_hostname=False
+              ctx.verify_mode=ssl.CERT_NONE
+              try:
+                  with socket.create_connection((HOST, port), timeout=TIMEOUT) as raw:
+                      raw.settimeout(TIMEOUT)
+                      with ctx.wrap_socket(raw, server_hostname=HOST) as s:
+                          return f"TLS OK: {s.version()} cipher={s.cipher()}"
+              except Exception as e:
+                  return f"{type(e).__name__}: {e}"
+
+          def legacy_probe(port):
+              # Source RCON auth packet with deliberately invalid password.
+              body=b"HAPYCH_PROBE_BAD_PASSWORD"
+              req_id=0x12345678
+              typ=3
+              payload=struct.pack("<ii", req_id, typ)+body+b"\x00\x00"
+              packet=struct.pack("<i", len(payload))+payload
+              try:
+                  with socket.create_connection((HOST, port), timeout=TIMEOUT) as s:
+                      s.settimeout(TIMEOUT)
+                      s.sendall(packet)
+                      head=s.recv(4)
+                      if len(head)<4:
+                          return f"SHORT/CLOSED head={head!r}"
+                      size=struct.unpack("<i",head)[0]
+                      data=b""
+                      while len(data)<size:
+                          chunk=s.recv(size-len(data))
+                          if not chunk: break
+                          data+=chunk
+                      if len(data)>=8:
+                          rid,rtype=struct.unpack("<ii",data[:8])
+                          body=data[8:-2] if len(data)>=10 else b""
+                          return f"RCON REPLY size={size} id={rid} type={rtype} body={body[:200]!r}"
+                      return f"RAW size={size} data={data[:200]!r}"
+              except Exception as e:
+                  return f"{type(e).__name__}: {e}"
+
+          print("=== TCP reachability ===")
+          for p in PORTS:
+              print(p, tcp_probe(p))
+
+          print("\n=== Port 20532 protocol probes ===")
+          print("WS:", ws_probe(20532))
+          print("TLS:", tls_probe(20532))
+          print("LEGACY:", legacy_probe(20532))
+
+          print("\n=== Adjacent ports WS quick classification ===")
+          for p in [20531,20533,20534]:
+              print(f"WS {p}: {ws_probe(p)}")
+          PY
