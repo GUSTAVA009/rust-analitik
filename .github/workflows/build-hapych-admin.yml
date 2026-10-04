@@ -25,7 +25,7 @@ jobs:
           sed -i 's/content: @Composable Column\.() -> Unit/content: @Composable ColumnScope.() -> Unit/' hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
 
           # Replace the original WebRCON-only client with AUTO WebRCON + Legacy Source RCON transport.
-          base64 -d hapych-admin-overrides/RconClient.kt.gz.b64 | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
+          cat hapych-admin-overrides/RconClient.part0.b64 hapych-admin-overrides/RconClient.part1.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
 
           # HAPYCH identity/version.
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
