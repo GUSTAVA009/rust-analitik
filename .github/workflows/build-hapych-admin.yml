@@ -34,6 +34,7 @@ jobs:
           base64 -d hapych-admin-v107/main-v107.patch.gz.b64 | gzip -d > /tmp/main-v107.patch
           patch -d hapych-admin/app/src/main/java/com/hapych/admin -p1 < /tmp/rcon-v107.patch
           patch -d hapych-admin/app/src/main/java/com/hapych/admin -p1 < /tmp/main-v107.patch
+          sed -i 's/SSLSocketFactory.getDefault().createSocket/(SSLSocketFactory.getDefault() as SSLSocketFactory).createSocket/' hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
 
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
