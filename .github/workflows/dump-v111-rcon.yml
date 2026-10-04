@@ -1,0 +1,16 @@
+name: Dump v111 RCON source
+
+on:
+  push:
+    branches: [hapych-admin-app]
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and dump
+        shell: bash
+        run: |
+          cat hapych-admin-v111/RconClient.part*.b64 | base64 -d | gzip -d > /tmp/RconClient.kt
+          nl -ba /tmp/RconClient.kt | sed -n '1,760p'
