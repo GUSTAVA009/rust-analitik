@@ -179,7 +179,82 @@ function authenticatedHealth(callback) {
   });
 }
 
+function relayPathHealth(callback) {
+  if (!HEALTH_RCON_PASSWORD) {
+    callback({ok:false, state:"not_configured", error:"RCON_PASSWORD not configured"});
+    return;
+  }
+
+  const started = Date.now();
+  const local = new WebSocket(`ws://127.0.0.1:${PORT}/ws`, {
+    perMessageDeflate: false,
+    handshakeTimeout: 5000,
+    headers: { Authorization: `Bearer ${HEALTH_RCON_PASSWORD}` }
+  });
+  let done = false;
+  const finish = (ok, state, error = null, serverInfo = null) => {
+    if (done) return;
+    done = true;
+    try { local.terminate(); } catch {}
+    callback({ok, state, latencyMs:Date.now()-started, error, serverInfo});
+  };
+  const timer = setTimeout(() => finish(false, "timeout", "relay path did not return serverinfo"), 12000);
+
+  local.on("open", () => {
+    local.send(JSON.stringify({
+      Identifier: 980001,
+      Message: "serverinfo",
+      Name: "HAPYCH Relay Selftest",
+      Type: 3
+    }));
+  });
+
+  local.on("message", data => {
+    let outer;
+    try { outer = JSON.parse(data.toString()); } catch { return; }
+    if (outer && outer.Type === "relay_error") {
+      clearTimeout(timer);
+      finish(false, "relay_error", String(outer.Message || "relay error"));
+      return;
+    }
+    const message = String(outer && outer.Message || "");
+    if (Number(outer && outer.Identifier) === 980001 || message.includes("Hostname")) {
+      try {
+        const info = JSON.parse(message);
+        clearTimeout(timer);
+        finish(true, "ready", null, {
+          Hostname: info.Hostname ?? null,
+          Players: info.Players ?? null,
+          MaxPlayers: info.MaxPlayers ?? null,
+          Framerate: info.Framerate ?? null,
+          Memory: info.Memory ?? null,
+          EntityCount: info.EntityCount ?? null,
+          Uptime: info.Uptime ?? null,
+          Map: info.Map ?? null
+        });
+      } catch {}
+    }
+  });
+
+  local.on("error", err => {
+    clearTimeout(timer);
+    finish(false, "error", err && err.message ? err.message : "relay selftest error");
+  });
+}
+
 const server = http.createServer((req, res) => {
+  if (req.url === "/relay-health") {
+    relayPathHealth(result => {
+      res.writeHead(result.ok ? 200 : 503, {"content-type":"application/json; charset=utf-8"});
+      res.end(JSON.stringify({
+        service:"HAPYCH RCON Relay",
+        path:"phone-relay-rust",
+        ...result
+      }));
+    });
+    return;
+  }
+
   if (req.url === "/health") {
     authenticatedHealth(result => {
       res.writeHead(result.ok ? 200 : 503, {"content-type":"application/json; charset=utf-8"});
@@ -262,11 +337,31 @@ wss.on("connection", client => {
     closeBoth();
   }, 12_000);
 
-  client.on("message", data => {
+  client.on("message", (data, isBinary) => {
+    // Rust WebRCON expects JSON as a TEXT WebSocket frame.
+    // node-ws exposes text payloads as Buffer, so forwarding Buffer directly
+    // silently turns the frame into binary. Normalize every app command to text.
+    const text = isBinary ? data.toString("utf8") : data.toString();
+    let outbound = text;
+    try {
+      const msg = JSON.parse(text);
+      if (msg && typeof msg === "object") {
+        if (!Number.isFinite(Number(msg.Identifier))) msg.Identifier = Date.now();
+        if (typeof msg.Message !== "string") msg.Message = String(msg.Message || "");
+        if (!msg.Name) msg.Name = "HAPYCH Admin";
+        msg.Type = 3;
+        outbound = JSON.stringify(msg);
+        const commandName = String(msg.Message || "").trim().split(/\s+/)[0] || "<empty>";
+        console.log(`client command -> Rust: ${commandName}`);
+      }
+    } catch {
+      console.warn("client sent non-JSON WebRCON payload; forwarding as text");
+    }
+
     if (upstreamOpened && upstream.readyState === WebSocket.OPEN) {
-      upstream.send(data);
+      upstream.send(outbound, { binary: false });
     } else if (queue.length < 100) {
-      queue.push(Buffer.from(data));
+      queue.push(outbound);
     }
   });
 
@@ -283,12 +378,15 @@ wss.on("connection", client => {
       Port: RCON_PORT
     });
     for (const item of queue.splice(0)) {
-      if (upstream.readyState === WebSocket.OPEN) upstream.send(item);
+      if (upstream.readyState === WebSocket.OPEN) upstream.send(item, { binary: false });
     }
   });
 
-  upstream.on("message", data => {
-    if (client.readyState === WebSocket.OPEN) client.send(data);
+  upstream.on("message", (data, isBinary) => {
+    if (client.readyState === WebSocket.OPEN) {
+      if (isBinary) client.send(data, { binary: true });
+      else client.send(data.toString(), { binary: false });
+    }
   });
 
   upstream.on("close", (code, reason) => {
