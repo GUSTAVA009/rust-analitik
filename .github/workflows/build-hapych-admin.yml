@@ -335,10 +335,206 @@ jobs:
           main.write_text(m)
           PY
 
+          # v1.0.12: production HAPYCH Relay transport.
+          # Phone connects by WSS/443 to Render; relay connects to Rust 2026 WebRCON.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
+          s = rcon.read_text()
+
+          # UI-facing connect messages: exact Rust endpoint remains visible, transport is relay/WSS.
+          s = s.replace(
+              'val scheme = if (settings.useTls) "WSS/TLS" else "WS"\n        append("Rust 2026 WebRCON: подключение к $host:$port • $scheme", LineKind.INFO)\n        append("Используется только современный Rust WebRCON (rcon.web 1). Legacy/Source RCON отключён.", LineKind.INFO)',
+              'append("HAPYCH Relay: защищённое подключение WSS/443", LineKind.INFO)\n        append("Rust 2026 WebRCON: целевой сервер $host:$port", LineKind.INFO)\n        append("Legacy/Source RCON не используется.", LineKind.INFO)'
+          )
+
+          # Replace the direct Rust socket handshake with a TLS WebSocket handshake to our relay.
+          a = s.index("    private fun connectWebRcon(host: String, port: Int, password: String, useTls: Boolean, currentGeneration: Int) {")
+          b = s.index("    private fun startReader(currentGeneration: Int) {", a)
+
+          relay_connect = r'''    private fun connectWebRcon(host: String, port: Int, password: String, useTls: Boolean, currentGeneration: Int) {
+              val relayHost = "hapych-rcon-relay.onrender.com"
+              val relayPort = 443
+
+              val raw = Socket()
+              raw.tcpNoDelay = true
+              raw.keepAlive = true
+              raw.connect(InetSocketAddress(relayHost, relayPort), 8_000)
+              raw.soTimeout = 75_000
+
+              val connected = (SSLSocketFactory.getDefault() as SSLSocketFactory)
+                  .createSocket(raw, relayHost, relayPort, true)
+                  .let { it as SSLSocket }
+                  .apply {
+                      soTimeout = 75_000
+                      startHandshake()
+                  }
+
+              if (currentGeneration != generation) {
+                  runCatching { connected.close() }
+                  return
+              }
+
+              val inputStream = BufferedInputStream(connected.getInputStream())
+              val outputStream = BufferedOutputStream(connected.getOutputStream())
+              val websocketKeyBytes = ByteArray(16).also(random::nextBytes)
+              val websocketKey = Base64.getEncoder().encodeToString(websocketKeyBytes)
+
+              val request = buildString {
+                  append("GET /ws HTTP/1.1\r\n")
+                  append("Host: ").append(relayHost).append("\r\n")
+                  append("Upgrade: websocket\r\n")
+                  append("Connection: Upgrade\r\n")
+                  append("Sec-WebSocket-Key: ").append(websocketKey).append("\r\n")
+                  append("Sec-WebSocket-Version: 13\r\n")
+                  append("Authorization: Bearer ").append(password).append("\r\n")
+                  append("Origin: https://").append(relayHost).append("\r\n")
+                  append("User-Agent: HAPYCH-Admin/1.0.12\r\n")
+                  append("\r\n")
+              }
+
+              outputStream.write(request.toByteArray(Charsets.ISO_8859_1))
+              outputStream.flush()
+
+              val first = inputStream.read()
+              if (first < 0) throw EOFException("HAPYCH Relay закрыл соединение до WebSocket handshake")
+
+              val header = readHttpHeader(inputStream, first)
+              val firstLine = header.lineSequence().firstOrNull().orEmpty()
+              if (!firstLine.contains(" 101 ")) {
+                  when {
+                      firstLine.contains(" 401 ") || firstLine.contains(" 403 ") -> throw AuthRejected()
+                      firstLine.contains(" 429 ") -> throw HandshakeError("слишком много попыток подключения; повтори через минуту")
+                      else -> throw HandshakeError(firstLine.ifBlank { "HAPYCH Relay не вернул HTTP 101" })
+                  }
+              }
+
+              val accept = header.lineSequence()
+                  .firstOrNull { it.startsWith("Sec-WebSocket-Accept:", ignoreCase = true) }
+                  ?.substringAfter(':')?.trim().orEmpty()
+              val expected = websocketAccept(websocketKey)
+              if (accept.isNotBlank() && accept != expected) {
+                  throw HandshakeError("неверный Sec-WebSocket-Accept от HAPYCH Relay")
+              }
+
+              connected.soTimeout = 1_000
+              socket = connected
+              input = inputStream
+              output = outputStream
+              _connection.value = ConnectionState.CONNECTED
+              _lastError.value = ""
+              _detectedRconPort.value = port
+              _detectedProtocol.value = "Rust 2026 WebRCON • HAPYCH Relay • WSS"
+              append("HAPYCH Relay подключён • WSS/443", LineKind.SUCCESS)
+              append("Ожидаю подтверждение Rust WebRCON $host:$port…", LineKind.INFO)
+
+              startReader(currentGeneration)
+              requestRefresh()
+              startAutoRefresh(currentGeneration)
+          }
+
+          '''
+          s = s[:a] + relay_connect + s[b:]
+
+          # Relay status/error messages are transport control messages, not Rust console text.
+          needle = '''            val obj = root.asJsonObject
+              val message = obj.get("Message")?.asString ?: raw
+              val type = obj.get("Type")?.asString ?: ""
+              parsePayload(message)
+          '''
+          replacement = '''            val obj = root.asJsonObject
+              val message = obj.get("Message")?.asString ?: raw
+              val type = obj.get("Type")?.asString ?: ""
+
+              if (type.equals("relay_status", ignoreCase = true)) {
+                  _detectedProtocol.value = "Rust 2026 WebRCON • HAPYCH Relay • WSS"
+                  append("HAPYCH Relay: $message", LineKind.SUCCESS)
+                  return
+              }
+              if (type.equals("relay_error", ignoreCase = true)) {
+                  connectionLost("HAPYCH Relay: $message")
+                  return
+              }
+
+              parsePayload(message)
+          '''
+          if needle not in s:
+              raise SystemExit("relay handleIncoming insertion point not found")
+          s = s.replace(needle, replacement, 1)
+
+          # Relay path is always TLS; direct WSS switch no longer affects transport.
+          s = s.replace(
+              'if (currentGeneration == generation) fail("RCON $host:$port отклонил пароль. Проверь RCON password.")',
+              'if (currentGeneration == generation) fail("HAPYCH Relay отклонил авторизацию. Проверь RCON password.")'
+          )
+          s = s.replace(
+              'if (currentGeneration == generation) fail("RCON $host:$port недоступен: соединение отклонено. Проверь IP и RCON порт.")',
+              'if (currentGeneration == generation) fail("HAPYCH Relay недоступен. Проверь интернет на телефоне.")'
+          )
+          s = s.replace(
+              'if (currentGeneration == generation) fail("RCON $host:$port не ответил вовремя. Проверь RCON порт и доступ к нему из мобильной сети.")',
+              'if (currentGeneration == generation) fail("HAPYCH Relay не ответил вовремя. На бесплатном Render первый запуск может занять до минуты — повтори подключение.")'
+          )
+          s = s.replace(
+              'if (currentGeneration == generation) fail("WSS/TLS не принят сервером. Для обычного Rust WebRCON выключи WSS/TLS.")',
+              'if (currentGeneration == generation) fail("Не удалось установить защищённый TLS-канал до HAPYCH Relay.")'
+          )
+          rcon.write_text(s)
+
+          main = Path("hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt")
+          m = main.read_text()
+
+          m = m.replace("Rust 2026 WebRCON", "HAPYCH Relay + Rust 2026 WebRCON", 1)
+          m = m.replace(
+              "Укажи точный RCON IP/домен, RCON порт и пароль. Подключение идёт напрямую к современному Rust WebRCON — без Legacy и без перебора портов.",
+              "Укажи RCON IP/домен, RCON порт и пароль. Телефон подключается по защищённому WSS/443 к HAPYCH Relay, а Relay — к Rust WebRCON."
+          )
+          m = m.replace(
+              '''            SettingToggle(
+                  "WSS / TLS",
+                  "Для обычного Rust WebRCON оставь выключенным. Включай только для отдельного TLS/WSS-прокси",
+                  tls,
+                  enabled = !demo
+              ) { tls = it }''',
+              '''            SettingToggle(
+                  "Защищённый канал",
+                  "WSS/TLS через HAPYCH Relay • порт 443 • всегда включён",
+                  true,
+                  enabled = false
+              ) { }'''
+          )
+          m = m.replace(
+              '''            SettingToggle(
+                  "WSS / TLS",
+                  "Включай только если RCON доступен через TLS/WSS-прокси",
+                  tls,
+                  enabled = !demo
+              ) { tls = it }''',
+              '''            SettingToggle(
+                  "Защищённый канал",
+                  "WSS/TLS через HAPYCH Relay • порт 443 • всегда включён",
+                  true,
+                  enabled = false
+              ) { }'''
+          )
+          m = m.replace(
+              "Rust 2026: только WebRCON (rcon.web 1). Если IP, RCON порт или пароль неверны — приложение сразу покажет ошибку. Legacy/Source RCON не используется.",
+              "Телефон не подключается к открытому RCON-порту напрямую. Управление идёт через защищённый HAPYCH Relay по WSS/443. Пароль хранится только в Android Keystore и передаётся Relay по TLS."
+          )
+          m = m.replace(
+              "Для прямого подключения телефон должен видеть RCON-порт сервера. Безопаснее открывать его только через VPN/туннель или ограничить доступ по IP.",
+              "Телефон подключается к HAPYCH Relay по WSS/443. Relay уже видит Rust RCON 46.174.50.175:20532 и передаёт команды серверу."
+          )
+          m = m.replace('ScreenHeader("Консоль", "Rust 2026 WebRCON • live")',
+                        'ScreenHeader("Консоль", "HAPYCH Relay • Rust 2026 WebRCON")')
+          main.write_text(m)
+          PY
+
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
-          sed -i 's/versionCode = 1/versionCode = 11/' hapych-admin/app/build.gradle.kts
-          sed -i 's/versionName = "1.0.0"/versionName = "1.0.11"/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionCode = 1/versionCode = 12/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionName = "1.0.0"/versionName = "1.0.12"/' hapych-admin/app/build.gradle.kts
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -371,14 +567,14 @@ jobs:
           APK="hapych-admin/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
-          cp "$APK" HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk
-          sha256sum HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk > HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk.sha256
+          cp "$APK" HAPYCH-Admin-v1.0.12-HAPYCH-RELAY.apk
+          sha256sum HAPYCH-Admin-v1.0.12-HAPYCH-RELAY.apk > HAPYCH-Admin-v1.0.12-HAPYCH-RELAY.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON
+          name: HAPYCH-Admin-v1.0.12-HAPYCH-RELAY
           path: |
-            HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk
-            HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk.sha256
+            HAPYCH-Admin-v1.0.12-HAPYCH-RELAY.apk
+            HAPYCH-Admin-v1.0.12-HAPYCH-RELAY.apk.sha256
           if-no-files-found: error
