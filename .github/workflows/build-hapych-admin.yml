@@ -729,8 +729,10 @@ jobs:
           b = s.index("    private fun startReader(currentGeneration: Int) {", a)
           block = s[a:b]
 
-          tls_start = block.index("              val raw = Socket()")
-          tls_end = block.index("              if (currentGeneration != generation) {", tls_start)
+          raw_pos = block.index("val raw = Socket()")
+          tls_start = block.rfind("\n", 0, raw_pos) + 1
+          guard_pos = block.index("if (currentGeneration != generation)", raw_pos)
+          tls_end = block.rfind("\n", 0, guard_pos) + 1
 
           hardened = '''              var connected: SSLSocket? = null
               var lastTlsError: Throwable? = null
