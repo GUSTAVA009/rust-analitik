@@ -614,45 +614,57 @@ jobs:
           main.write_text(m)
           PY
 
-          # v1.0.14: Rust WebRCON command envelope + live dashboard refresh.
-          # Rust expects Type=3 for console commands. Clear stale Demo values on live connect
-          # and refresh dashboard immediately after Relay confirms upstream Rust is connected.
+          # v1.0.14: live Rust data + command protocol fix.
+          # Correct Rust WebRCON command envelope, clear stale demo values, and refresh
+          # serverinfo/playerlist as soon as Relay confirms upstream Rust is connected.
           python3 - <<'PY'
           from pathlib import Path
 
           rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
           s = rcon.read_text()
 
-          # Rust WebRCON command packets use Type=3.
-          name_line = '                      "Name" to "HAPYCH Admin"'
-          if name_line not in s:
-              raise SystemExit("sendCommand Name field not found")
-          s = s.replace(
-              name_line,
-              '                      "Name" to "HAPYCH Admin",\n                      "Type" to 3',
-              1
-          )
+          # 1) Fix outbound Rust WebRCON JSON. Type=3 is required for console commands.
+          send_a = s.index("    fun sendCommand(command: String) {")
+          send_b = s.index("    fun requestRefresh()", send_a)
+          send_block = s[send_a:send_b]
+          if '"Type" to 3' not in send_block:
+              needle = '"Name" to "HAPYCH Admin"'
+              pos = send_block.index(needle)
+              send_block = (
+                  send_block[:pos]
+                  + '"Name" to "HAPYCH Admin",\n                      "Type" to 3'
+                  + send_block[pos + len(needle):]
+              )
+              s = s[:send_a] + send_block + s[send_b:]
 
-          # Remove stale Demo values as soon as a real connection attempt starts.
-          connecting = '        _connection.value = ConnectionState.CONNECTING\n'
-          if connecting not in s:
-              raise SystemExit("CONNECTING state not found")
-          s = s.replace(
-              connecting,
-              connecting + '        _stats.value = ServerStats()\n        _players.value = emptyList()\n',
-              1
-          )
+          # 2) When leaving Demo for a real connection, wipe fake counters/list immediately.
+          connect_a = s.index("    fun connect(settings: AppSettings) {")
+          connect_b = s.index("    fun disconnect()", connect_a)
+          connect_block = s[connect_a:connect_b]
+          if "_stats.value = ServerStats()" not in connect_block:
+              needle = "        _connection.value = ConnectionState.CONNECTING\n"
+              if needle not in connect_block:
+                  raise SystemExit("CONNECTING state not found in connect()")
+              connect_block = connect_block.replace(
+                  needle,
+                  needle + "        _stats.value = ServerStats()\n        _players.value = emptyList()\n",
+                  1
+              )
+              s = s[:connect_a] + connect_block + s[connect_b:]
 
-          # Relay accepts the client socket before its upstream Rust socket is ready.
-          # Request fresh data again exactly when upstream WebRCON is confirmed.
-          relay_line = '                  append("HAPYCH Relay: $message", LineKind.SUCCESS)\n                  return'
-          if relay_line not in s:
-              raise SystemExit("relay status success block not found")
-          s = s.replace(
-              relay_line,
-              '                  append("HAPYCH Relay: $message", LineKind.SUCCESS)\n                  requestRefresh()\n                  return',
-              1
-          )
+          # 3) Relay client socket opens before Relay->Rust is ready. Once Relay reports
+          #    'Rust WebRCON connected', immediately re-request authoritative data.
+          handle_a = s.index("    private fun handleIncoming(raw: String) {")
+          handle_b = s.index("    private fun looksLikeTelemetry", handle_a)
+          handle_block = s[handle_a:handle_b]
+          success_line = 'append("HAPYCH Relay: $message", LineKind.SUCCESS)'
+          if success_line in handle_block and "requestRefresh()" not in handle_block:
+              handle_block = handle_block.replace(
+                  success_line,
+                  success_line + "\n                  requestRefresh()",
+                  1
+              )
+              s = s[:handle_a] + handle_block + s[handle_b:]
 
           s = s.replace("HAPYCH-Admin/1.0.13", "HAPYCH-Admin/1.0.14")
           rcon.write_text(s)
