@@ -1,8 +1,7 @@
 name: Export HAPYCH Admin source
 
 on:
-  push:
-    branches: [hapych-admin-app]
+  workflow_dispatch:
 
 jobs:
   export:
