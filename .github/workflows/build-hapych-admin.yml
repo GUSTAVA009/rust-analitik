@@ -615,62 +615,44 @@ jobs:
           PY
 
           # v1.0.14: Rust WebRCON command envelope + live dashboard refresh.
-          # Rust expects Type=3 for console commands. Also clear stale Demo values on live connect
-          # and re-request serverinfo/playerlist once Relay confirms upstream Rust is connected.
+          # Rust expects Type=3 for console commands. Clear stale Demo values on live connect
+          # and refresh dashboard immediately after Relay confirms upstream Rust is connected.
           python3 - <<'PY'
           from pathlib import Path
 
           rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
           s = rcon.read_text()
 
-          # Add the Rust WebRCON command type to the outbound JSON envelope.
-          old = '''                  mapOf(
-                      "Identifier" to nextId.incrementAndGet(),
-                      "Message" to cmd,
-                      "Name" to "HAPYCH Admin"
-                  )'''
-          new = '''                  mapOf(
-                      "Identifier" to nextId.incrementAndGet(),
-                      "Message" to cmd,
-                      "Name" to "HAPYCH Admin",
-                      "Type" to 3
-                  )'''
-          if old not in s:
-              raise SystemExit("sendCommand payload block not found")
-          s = s.replace(old, new, 1)
+          # Rust WebRCON command packets use Type=3.
+          name_line = '                      "Name" to "HAPYCH Admin"'
+          if name_line not in s:
+              raise SystemExit("sendCommand Name field not found")
+          s = s.replace(
+              name_line,
+              '                      "Name" to "HAPYCH Admin",\n                      "Type" to 3',
+              1
+          )
 
-          # Never keep fake/demo data visible after switching to a real connection.
-          connect_marker = '''        _connection.value = ConnectionState.CONNECTING
-          _lastError.value = ""
-          _detectedRconPort.value = null
-          _detectedProtocol.value = ""
-          '''
-          connect_replacement = '''        _connection.value = ConnectionState.CONNECTING
-          _lastError.value = ""
-          _detectedRconPort.value = null
-          _detectedProtocol.value = ""
-          _stats.value = ServerStats()
-          _players.value = emptyList()
-          '''
-          if connect_marker in s:
-              s = s.replace(connect_marker, connect_replacement, 1)
+          # Remove stale Demo values as soon as a real connection attempt starts.
+          connecting = '        _connection.value = ConnectionState.CONNECTING\n'
+          if connecting not in s:
+              raise SystemExit("CONNECTING state not found")
+          s = s.replace(
+              connecting,
+              connecting + '        _stats.value = ServerStats()\n        _players.value = emptyList()\n',
+              1
+          )
 
-          # When the relay confirms that its upstream WebRCON socket is open, immediately ask
-          # for authoritative dashboard data again instead of waiting for the next 10s tick.
-          relay_status = '''              if (type.equals("relay_status", ignoreCase = true)) {
-                  _detectedProtocol.value = "Rust 2026 WebRCON • HAPYCH Relay • WSS"
-                  append("HAPYCH Relay: $message", LineKind.SUCCESS)
-                  return
-              }'''
-          relay_status_new = '''              if (type.equals("relay_status", ignoreCase = true)) {
-                  _detectedProtocol.value = "Rust 2026 WebRCON • HAPYCH Relay • WSS"
-                  append("HAPYCH Relay: $message", LineKind.SUCCESS)
-                  requestRefresh()
-                  return
-              }'''
-          if relay_status not in s:
-              raise SystemExit("relay_status block not found")
-          s = s.replace(relay_status, relay_status_new, 1)
+          # Relay accepts the client socket before its upstream Rust socket is ready.
+          # Request fresh data again exactly when upstream WebRCON is confirmed.
+          relay_line = '                  append("HAPYCH Relay: $message", LineKind.SUCCESS)\n                  return'
+          if relay_line not in s:
+              raise SystemExit("relay status success block not found")
+          s = s.replace(
+              relay_line,
+              '                  append("HAPYCH Relay: $message", LineKind.SUCCESS)\n                  requestRefresh()\n                  return',
+              1
+          )
 
           s = s.replace("HAPYCH-Admin/1.0.13", "HAPYCH-Admin/1.0.14")
           rcon.write_text(s)
