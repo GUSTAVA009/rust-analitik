@@ -14,6 +14,4 @@ jobs:
         run: |
           cat hapych-admin-overrides-v106-chunks/MainActivity.part*.b64 | base64 -d | gzip -d > /tmp/MainActivity.kt
           cat hapych-admin-v111/RconClient.part*.b64 | base64 -d | gzip -d > /tmp/RconClient.kt
-          grep -n -A140 -B40 'private fun writeFrame' /tmp/RconClient.kt || true
-          echo '--- startReader ---'
-          grep -n -A180 -B30 'private fun startReader' /tmp/RconClient.kt || true
+          nl -ba /tmp/RconClient.kt | sed -n '1,120p'
