@@ -102,3 +102,90 @@ jobs:
           for p in [20531,20533,20534]:
               print(f"WS {p}: {ws_probe(p)}")
           PY
+
+      - name: Authenticated WebRCON test if secret exists
+        shell: bash
+        env:
+          RCON_PASSWORD: ${{ secrets.HAPYCH_RCON_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os, socket, base64, hashlib, json, struct, urllib.parse
+
+          host="46.174.50.175"
+          port=20532
+          password=os.environ.get("RCON_PASSWORD","")
+          if not password:
+              print("AUTH TEST SKIPPED: repository secret HAPYCH_RCON_PASSWORD is not set")
+              raise SystemExit(0)
+
+          # Encode the password as one URL path segment without ever printing it.
+          path="/" + urllib.parse.quote(password, safe="")
+          key=base64.b64encode(os.urandom(16)).decode()
+          req=(
+              f"GET {path} HTTP/1.1\r\n"
+              f"Host: {host}:{port}\r\n"
+              "Upgrade: websocket\r\n"
+              "Connection: Upgrade\r\n"
+              f"Sec-WebSocket-Key: {key}\r\n"
+              "Sec-WebSocket-Version: 13\r\n"
+              "Origin: http://localhost\r\n\r\n"
+          ).encode()
+
+          def recv_exact(s,n):
+              out=b""
+              while len(out)<n:
+                  b=s.recv(n-len(out))
+                  if not b: raise EOFError("socket closed")
+                  out+=b
+              return out
+
+          def send_text(s, text):
+              payload=text.encode()
+              mask=os.urandom(4)
+              n=len(payload)
+              if n<126:
+                  hdr=bytes([0x81,0x80|n])
+              elif n<65536:
+                  hdr=bytes([0x81,0x80|126])+struct.pack("!H",n)
+              else:
+                  hdr=bytes([0x81,0x80|127])+struct.pack("!Q",n)
+              masked=bytes(b ^ mask[i%4] for i,b in enumerate(payload))
+              s.sendall(hdr+mask+masked)
+
+          def recv_frame(s):
+              h=recv_exact(s,2)
+              opcode=h[0]&0x0f
+              n=h[1]&0x7f
+              if n==126: n=struct.unpack("!H",recv_exact(s,2))[0]
+              elif n==127: n=struct.unpack("!Q",recv_exact(s,8))[0]
+              if h[1]&0x80:
+                  mask=recv_exact(s,4)
+              else:
+                  mask=None
+              payload=recv_exact(s,n)
+              if mask:
+                  payload=bytes(b ^ mask[i%4] for i,b in enumerate(payload))
+              return opcode,payload
+
+          try:
+              with socket.create_connection((host,port),timeout=5) as s:
+                  s.settimeout(5)
+                  s.sendall(req)
+                  data=b""
+                  while b"\r\n\r\n" not in data and len(data)<8192:
+                      chunk=s.recv(4096)
+                      if not chunk: break
+                      data+=chunk
+                  if data.startswith(b"HTTP/1.1 101"):
+                      print("AUTH OK: WebRCON accepted password on 20532")
+                      msg=json.dumps({"Message":"serverinfo","Identifier":731,"Type":"","stacktrace":""},separators=(",",":"))
+                      send_text(s,msg)
+                      opcode,payload=recv_frame(s)
+                      print("SERVERINFO FRAME:", opcode, payload[:1500].decode("utf-8","replace"))
+                  elif data.startswith(b"\x88\x02\x03\xe8"):
+                      print("AUTH FAILED: server returned WebRCON close frame 1000")
+                  else:
+                      print("AUTH FAILED/UNKNOWN RESPONSE:", repr(data[:200]))
+          except Exception as e:
+              print("AUTH TEST ERROR:", type(e).__name__, str(e))
+          PY
