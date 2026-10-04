@@ -31,8 +31,8 @@ jobs:
           # HAPYCH identity/version.
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
-          sed -i 's/versionCode = 1/versionCode = 5/' hapych-admin/app/build.gradle.kts
-          sed -i 's/versionName = "1.0.0"/versionName = "1.0.5"/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionCode = 1/versionCode = 6/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionName = "1.0.0"/versionName = "1.0.6"/' hapych-admin/app/build.gradle.kts
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -65,14 +65,14 @@ jobs:
           APK="hapych-admin/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
-          cp "$APK" HAPYCH-Admin-v1.0.5-RCON-DIAGNOSTICS.apk
-          sha256sum HAPYCH-Admin-v1.0.5-RCON-DIAGNOSTICS.apk > HAPYCH-Admin-v1.0.5-RCON-DIAGNOSTICS.apk.sha256
+          cp "$APK" HAPYCH-Admin-v1.0.6-RCON-AUTOFIND.apk
+          sha256sum HAPYCH-Admin-v1.0.6-RCON-AUTOFIND.apk > HAPYCH-Admin-v1.0.6-RCON-AUTOFIND.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HAPYCH-Admin-v1.0.5-RCON-DIAGNOSTICS
+          name: HAPYCH-Admin-v1.0.6-RCON-AUTOFIND
           path: |
-            HAPYCH-Admin-v1.0.5-RCON-DIAGNOSTICS.apk
-            HAPYCH-Admin-v1.0.5-RCON-DIAGNOSTICS.apk.sha256
+            HAPYCH-Admin-v1.0.6-RCON-AUTOFIND.apk
+            HAPYCH-Admin-v1.0.6-RCON-AUTOFIND.apk.sha256
           if-no-files-found: error
