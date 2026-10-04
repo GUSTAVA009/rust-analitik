@@ -75,6 +75,12 @@ function authenticatedHealth(callback) {
   const started = Date.now();
   const ws = newUpstream(HEALTH_RCON_PASSWORD);
   let done = false;
+  let opened = false;
+  let serverInfo = null;
+  let playerList = null;
+  let serverInfoKeys = [];
+  let playerKeys = [];
+
   const finish = (ok, state, error = null) => {
     if (done) return;
     done = true;
@@ -82,33 +88,84 @@ function authenticatedHealth(callback) {
     callback({
       ok,
       state,
-      auth: ok ? "accepted" : "failed",
+      auth: opened ? "accepted" : "failed",
       latencyMs: Date.now() - started,
-      error
+      error,
+      diagnostics: {
+        serverInfo,
+        serverInfoKeys,
+        playerCount: Array.isArray(playerList) ? playerList.length : null,
+        playerKeys
+      }
     });
   };
 
-  const timer = setTimeout(() => finish(false, "timeout", "Rust WebRCON auth probe timed out"), 10000);
+  const timer = setTimeout(() => {
+    finish(opened, opened ? "connected_no_telemetry" : "timeout", opened ? "Connected but serverinfo/playerlist telemetry incomplete" : "Rust WebRCON auth probe timed out");
+  }, 10000);
 
-  ws.once("open", () => {
-    const id = 970001;
+  const sendCommand = (id, message) => {
     ws.send(JSON.stringify({
       Identifier: id,
-      Message: "serverinfo",
-      Name: "HAPYCH Relay Health"
+      Message: message,
+      Name: "HAPYCH Relay Health",
+      Type: 3
     }));
+  };
+
+  ws.once("open", () => {
+    opened = true;
+    sendCommand(970001, "serverinfo");
+    sendCommand(970002, "playerlist");
   });
 
   ws.on("message", data => {
-    const text = data.toString();
-    try {
-      const msg = JSON.parse(text);
-      const message = String(msg && msg.Message || "");
-      if (msg && (msg.Identifier === 970001 || message.includes("Hostname"))) {
-        clearTimeout(timer);
-        finish(true, "ready", null);
-      }
-    } catch {}
+    const raw = data.toString();
+    let outer;
+    try { outer = JSON.parse(raw); } catch { return; }
+    const id = Number(outer && outer.Identifier);
+    const message = String(outer && outer.Message || "");
+
+    if (id === 970001 || message.includes("Hostname") || message.includes("MaxPlayers")) {
+      try {
+        const o = JSON.parse(message);
+        serverInfoKeys = Object.keys(o || {});
+        const pick = (names) => {
+          for (const name of names) {
+            if (o && o[name] !== undefined && o[name] !== null) return o[name];
+          }
+          return null;
+        };
+        serverInfo = {
+          hostname: pick(["Hostname","hostname"]),
+          players: pick(["Players","players"]),
+          maxPlayers: pick(["MaxPlayers","maxPlayers","Maxplayers"]),
+          queued: pick(["Queued","queued"]),
+          joining: pick(["Joining","joining"]),
+          fps: pick(["Framerate","FPS","Fps","framerate"]),
+          memory: pick(["Memory","MemoryMb","memory"]),
+          entities: pick(["EntityCount","Entities","entityCount"]),
+          uptime: pick(["Uptime","uptime"]),
+          map: pick(["Map","map"]),
+          gameTime: pick(["GameTime","gametime"])
+        };
+      } catch {}
+    }
+
+    if (id === 970002 || (message.startsWith("[") && (message.includes("SteamID") || message.includes("DisplayName")))) {
+      try {
+        const arr = JSON.parse(message);
+        if (Array.isArray(arr)) {
+          playerList = arr;
+          playerKeys = arr.length && arr[0] && typeof arr[0] === "object" ? Object.keys(arr[0]) : [];
+        }
+      } catch {}
+    }
+
+    if (serverInfo && Array.isArray(playerList)) {
+      clearTimeout(timer);
+      finish(true, "ready", null);
+    }
   });
 
   ws.once("close", (code, reason) => {
@@ -134,7 +191,8 @@ const server = http.createServer((req, res) => {
         rconHost: RCON_HOST,
         rconPort: RCON_PORT,
         latencyMs: result.latencyMs,
-        error: result.error
+        error: result.error,
+        diagnostics: result.diagnostics || null
       }));
     });
     return;
