@@ -1,0 +1,23 @@
+name: Export HAPYCH Admin source
+
+on:
+  push:
+    branches: [hapych-admin-app]
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct current v1.0.6 source
+        shell: bash
+        run: |
+          mkdir -p exported
+          cat hapych-admin-overrides-v106-chunks/RconClient.part*.b64 | base64 -d | gzip -d > exported/RconClient.kt
+          cat hapych-admin-overrides-v106-chunks/MainActivity.part*.b64 | base64 -d | gzip -d > exported/MainActivity.kt
+          cp hapych-admin-overrides-v106/Models.kt exported/Models.kt
+          cp hapych-admin-overrides-v106/SecurePrefs.kt exported/SecurePrefs.kt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HAPYCH-Admin-v106-source-export
+          path: exported/
