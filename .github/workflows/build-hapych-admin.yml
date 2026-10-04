@@ -670,36 +670,41 @@ jobs:
           rcon.write_text(s)
           PY
 
-          # v1.0.15: keep automatic telemetry silent in the user console.
-          # Manual commands remain visible; serverinfo/playerlist polling updates UI without log spam.
+          # v1.0.15: working relay commands + silent automatic telemetry refresh.
           python3 - <<'PY'
           from pathlib import Path
 
           rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
           s = rcon.read_text()
 
+          # Manual commands remain visible, automatic telemetry requests stay silent.
           s = s.replace(
               "    fun sendCommand(command: String) {",
               "    fun sendCommand(command: String, logCommand: Boolean = true) {",
               1
           )
-          s = s.replace(
-              '              append("> $cmd", LineKind.COMMAND)\n              val payload = gson.toJson(',
-              '              if (logCommand) append("> $cmd", LineKind.COMMAND)\n              val payload = gson.toJson(',
-              1
-          )
 
-          old_refresh = '''    fun requestRefresh() {
-              sendCommand("serverinfo")
-              sendCommand("playerlist")
-          }'''
-          new_refresh = '''    fun requestRefresh() {
+          send_a = s.index("    fun sendCommand(command: String, logCommand: Boolean = true) {")
+          send_b = s.index("    fun requestRefresh()", send_a)
+          send_block = s[send_a:send_b]
+          command_log = '        append("> $cmd", LineKind.COMMAND)'
+          if command_log in send_block:
+              send_block = send_block.replace(
+                  command_log,
+                  '        if (logCommand) append("> $cmd", LineKind.COMMAND)',
+                  1
+              )
+          s = s[:send_a] + send_block + s[send_b:]
+
+          refresh_a = s.index("    fun requestRefresh() {")
+          refresh_b = s.index("    fun clearConsole()", refresh_a)
+          refresh_block = '''    fun requestRefresh() {
               sendCommand("serverinfo", logCommand = false)
               sendCommand("playerlist", logCommand = false)
-          }'''
-          if old_refresh not in s:
-              raise SystemExit("requestRefresh block not found")
-          s = s.replace(old_refresh, new_refresh, 1)
+          }
+
+          '''
+          s = s[:refresh_a] + refresh_block + s[refresh_b:]
 
           s = s.replace("HAPYCH-Admin/1.0.14", "HAPYCH-Admin/1.0.15")
           rcon.write_text(s)
