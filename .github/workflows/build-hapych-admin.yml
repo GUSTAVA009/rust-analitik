@@ -22,20 +22,12 @@ jobs:
           mkdir -p hapych-admin
           unzip -q HAPYCH-Admin-source.zip -d hapych-admin
 
-          # Start from the stable v1.0.5 RCON implementation.
-          cat hapych-admin-overrides-v105/RconClient.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
-          cat hapych-admin-overrides-v105/MainActivity.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
-          cp hapych-admin-overrides-v105/Models.kt hapych-admin/app/src/main/java/com/hapych/admin/Models.kt
-          cp hapych-admin-overrides-v105/SecurePrefs.kt hapych-admin/app/src/main/java/com/hapych/admin/SecurePrefs.kt
+          # v1.0.6: IP/domain + game port + RCON password; RCON port is auto-discovered.
+          cat hapych-admin-overrides-v106-chunks/RconClient.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
+          cat hapych-admin-overrides-v106-chunks/MainActivity.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt
+          cp hapych-admin-overrides-v106/Models.kt hapych-admin/app/src/main/java/com/hapych/admin/Models.kt
+          cp hapych-admin-overrides-v106/SecurePrefs.kt hapych-admin/app/src/main/java/com/hapych/admin/SecurePrefs.kt
 
-          # v1.0.6: user enters IP/domain + GAME port + RCON password last.
-          # RCON port is discovered automatically and WebRCON/Legacy are detected automatically.
-          for p in main rcon models secure; do
-            base64 -d "hapych-admin-overrides-v106/$p.patch.gz.b64" | gzip -d > "/tmp/$p.patch"
-            patch -d hapych-admin -p3 < "/tmp/$p.patch"
-          done
-
-          # HAPYCH identity/version.
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
           sed -i 's/versionCode = 1/versionCode = 6/' hapych-admin/app/build.gradle.kts
