@@ -1,8 +1,6 @@
 name: Probe HAPYCH RCON
 
 on:
-  push:
-    branches: [hapych-admin-app]
   workflow_dispatch:
 
 jobs:
