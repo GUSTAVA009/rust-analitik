@@ -438,12 +438,10 @@ jobs:
           s = s[:a] + relay_connect + s[b:]
 
           # Relay status/error messages are transport control messages, not Rust console text.
-          needle = '''            val obj = root.asJsonObject
-              val message = obj.get("Message")?.asString ?: raw
-              val type = obj.get("Type")?.asString ?: ""
-              parsePayload(message)
-          '''
-          replacement = '''            val obj = root.asJsonObject
+          handle_start = s.index("            val obj = root.asJsonObject", s.index("    private fun handleIncoming(raw: String)"))
+          parse_pos = s.index("            parsePayload(message)", handle_start)
+          parse_end = parse_pos + len("            parsePayload(message)")
+          control_block = '''            val obj = root.asJsonObject
               val message = obj.get("Message")?.asString ?: raw
               val type = obj.get("Type")?.asString ?: ""
 
@@ -457,11 +455,8 @@ jobs:
                   return
               }
 
-              parsePayload(message)
-          '''
-          if needle not in s:
-              raise SystemExit("relay handleIncoming insertion point not found")
-          s = s.replace(needle, replacement, 1)
+              parsePayload(message)'''
+          s = s[:handle_start] + control_block + s[parse_end:]
 
           # Relay path is always TLS; direct WSS switch no longer affects transport.
           s = s.replace(
