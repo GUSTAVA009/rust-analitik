@@ -294,10 +294,51 @@ jobs:
           main.write_text(m)
           PY
 
+          # v1.0.11: Rust 2026 WebRCON only. No Legacy/Source RCON and no port guessing.
+          cat hapych-admin-v111/RconClient.part*.b64 | base64 -d | gzip -d > hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Reset the old saved TLS flag once by moving it to a new preference key.
+          # Direct Rust WebRCON is WS by default; WSS is only for an explicit TLS proxy.
+          prefs = Path("hapych-admin/app/src/main/java/com/hapych/admin/SecurePrefs.kt")
+          p = prefs.read_text()
+          p = p.replace('prefs.getString("game_port", "28015") ?: "28015"',
+                        'prefs.getString("rcon_port", prefs.getString("game_port", "28016")) ?: "28016"')
+          p = p.replace('prefs.getBoolean("tls", false)', 'prefs.getBoolean("tls_v111", false)')
+          p = p.replace('.putString("game_port", settings.port.trim())',
+                        '.putString("rcon_port", settings.port.trim())')
+          p = p.replace('.putBoolean("tls", settings.useTls)',
+                        '.putBoolean("tls_v111", settings.useTls)')
+          prefs.write_text(p)
+
+          main = Path("hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt")
+          m = main.read_text()
+          m = m.replace("Прямое RCON-подключение", "Rust 2026 WebRCON")
+          m = m.replace(
+              "Укажи точный IP/домен, RCON порт и пароль. Приложение подключается только к этому адресу — без перебора портов.",
+              "Укажи точный RCON IP/домен, RCON порт и пароль. Подключение идёт напрямую к современному Rust WebRCON — без Legacy и без перебора портов."
+          )
+          m = m.replace(
+              "Включай только если RCON доступен через TLS/WSS-прокси",
+              "Для обычного Rust WebRCON оставь выключенным. Включай только для отдельного TLS/WSS-прокси"
+          )
+          m = m.replace(
+              "Подключение идёт напрямую к указанному RCON IP:PORT. Если адрес, порт или пароль неверны — приложение покажет ошибку и не будет перебирать другие порты.",
+              "Rust 2026: только WebRCON (rcon.web 1). Если IP, RCON порт или пароль неверны — приложение сразу покажет ошибку. Legacy/Source RCON не используется."
+          )
+          m = m.replace('ScreenHeader("Консоль", "Rust WebRCON • live")',
+                        'ScreenHeader("Консоль", "Rust 2026 WebRCON • live")')
+          m = m.replace('ScreenHeader("Консоль", "Rust RCON • диагностика и команды")',
+                        'ScreenHeader("Консоль", "Rust 2026 WebRCON • live")')
+          main.write_text(m)
+          PY
+
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
-          sed -i 's/versionCode = 1/versionCode = 10/' hapych-admin/app/build.gradle.kts
-          sed -i 's/versionName = "1.0.0"/versionName = "1.0.10"/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionCode = 1/versionCode = 11/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionName = "1.0.0"/versionName = "1.0.11"/' hapych-admin/app/build.gradle.kts
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -330,14 +371,14 @@ jobs:
           APK="hapych-admin/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
-          cp "$APK" HAPYCH-Admin-v1.0.10-PRODUCTION-RCON.apk
-          sha256sum HAPYCH-Admin-v1.0.10-PRODUCTION-RCON.apk > HAPYCH-Admin-v1.0.10-PRODUCTION-RCON.apk.sha256
+          cp "$APK" HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk
+          sha256sum HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk > HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HAPYCH-Admin-v1.0.10-PRODUCTION-RCON
+          name: HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON
           path: |
-            HAPYCH-Admin-v1.0.10-PRODUCTION-RCON.apk
-            HAPYCH-Admin-v1.0.10-PRODUCTION-RCON.apk.sha256
+            HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk
+            HAPYCH-Admin-v1.0.11-RUST2026-WEBRCON.apk.sha256
           if-no-files-found: error
