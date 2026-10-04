@@ -14,7 +14,8 @@ jobs:
         run: |
           cat hapych-admin-overrides-v106-chunks/MainActivity.part*.b64 | base64 -d | gzip -d > /tmp/MainActivity.kt
           cat hapych-admin-v111/RconClient.part*.b64 | base64 -d | gzip -d > /tmp/RconClient.kt
-          echo '--- parse payload ---'
-          nl -ba /tmp/RconClient.kt | sed -n '468,560p'
-          echo '--- models ---'
-          cat hapych-admin-overrides-v106/Models.kt
+          echo '--- send/refresh/frame/reader ---'
+          grep -n -A90 -B20 'fun requestRefresh' /tmp/RconClient.kt || true
+          grep -n -A120 -B20 'private fun startAutoRefresh' /tmp/RconClient.kt || true
+          grep -n -A160 -B20 'private fun writeFrame' /tmp/RconClient.kt || true
+          grep -n -A180 -B30 'private fun startReader' /tmp/RconClient.kt || true
