@@ -769,7 +769,7 @@ jobs:
                       (lastTlsError?.message ?: lastTlsError?.javaClass?.simpleName ?: "unknown")
               )
 
-'''
+          '''
           block = block[:tls_start] + hardened + block[tls_end:]
           block = block.replace("runCatching { connected.close() }", "runCatching { secureSocket.close() }")
           block = block.replace("BufferedInputStream(connected.getInputStream())", "BufferedInputStream(secureSocket.getInputStream())")
