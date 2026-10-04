@@ -710,10 +710,103 @@ jobs:
           rcon.write_text(s)
           PY
 
+          # v1.0.16: hardened Android TLS/SNI connection to HAPYCH Relay.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
+          s = rcon.read_text()
+
+          if "import javax.net.ssl.SNIHostName" not in s:
+              s = s.replace(
+                  "import javax.net.ssl.SSLException\n",
+                  "import javax.net.ssl.SSLException\nimport javax.net.ssl.SNIHostName\n",
+                  1
+              )
+
+          a = s.index("    private fun connectWebRcon(host: String, port: Int, password: String, useTls: Boolean, currentGeneration: Int) {")
+          b = s.index("    private fun startReader(currentGeneration: Int) {", a)
+          block = s[a:b]
+
+          tls_start = block.index("              val raw = Socket()")
+          tls_end = block.index("              if (currentGeneration != generation) {", tls_start)
+
+          hardened = '''              var connected: SSLSocket? = null
+              var lastTlsError: Throwable? = null
+
+              repeat(3) { attempt ->
+                  if (connected != null) return@repeat
+                  try {
+                      val ssl = (SSLSocketFactory.getDefault() as SSLSocketFactory)
+                          .createSocket() as SSLSocket
+                      ssl.tcpNoDelay = true
+                      ssl.keepAlive = true
+                      ssl.soTimeout = 75_000
+
+                      val supported = ssl.supportedProtocols.toSet()
+                      val preferred = listOf("TLSv1.3", "TLSv1.2").filter { it in supported }
+                      if (preferred.isNotEmpty()) ssl.enabledProtocols = preferred.toTypedArray()
+
+                      val params = ssl.sslParameters
+                      params.endpointIdentificationAlgorithm = "HTTPS"
+                      runCatching { params.serverNames = listOf(SNIHostName(relayHost)) }
+                      ssl.sslParameters = params
+
+                      ssl.connect(InetSocketAddress(relayHost, relayPort), 8_000)
+                      ssl.startHandshake()
+                      connected = ssl
+                  } catch (e: Throwable) {
+                      lastTlsError = e
+                      runCatching { connected?.close() }
+                      connected = null
+                      if (attempt < 2) Thread.sleep(750L * (attempt + 1))
+                  }
+              }
+
+              val secureSocket = connected ?: throw SSLException(
+                  "TLS handshake с HAPYCH Relay не удался: " +
+                      (lastTlsError?.message ?: lastTlsError?.javaClass?.simpleName ?: "unknown")
+              )
+
+'''
+          block = block[:tls_start] + hardened + block[tls_end:]
+          block = block.replace("runCatching { connected.close() }", "runCatching { secureSocket.close() }")
+          block = block.replace("BufferedInputStream(connected.getInputStream())", "BufferedInputStream(secureSocket.getInputStream())")
+          block = block.replace("BufferedOutputStream(connected.getOutputStream())", "BufferedOutputStream(secureSocket.getOutputStream())")
+          block = block.replace("connected.soTimeout = 1_000", "secureSocket.soTimeout = 1_000")
+          block = block.replace("socket = connected", "socket = secureSocket")
+          block = block.replace("HAPYCH-Admin/1.0.15", "HAPYCH-Admin/1.0.16")
+          s = s[:a] + block + s[b:]
+
+          s = s.replace(
+              'if (currentGeneration == generation) fail("Не удалось установить защищённый TLS-канал до HAPYCH Relay.")',
+              'if (currentGeneration == generation) fail("Не удалось установить защищённый TLS-канал до HAPYCH Relay: ${e.message ?: e.javaClass.simpleName}")'
+          )
+          rcon.write_text(s)
+
+          main = Path("hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt")
+          m = main.read_text()
+          pattern = re.compile(
+              r'SettingToggle\(\s*"HAPYCH Relay / WSS",\s*"Защищённый WSS/443-канал через HAPYCH Relay",\s*tls,\s*enabled = !demo\s*\) \{ tls = it \}',
+              re.S
+          )
+          m = pattern.sub(
+              '''SettingToggle(
+                  "HAPYCH Relay / WSS",
+                  "Защищённый WSS/443-канал через HAPYCH Relay • всегда включён",
+                  true,
+                  enabled = false
+              ) { }''',
+              m
+          )
+          main.write_text(m)
+          PY
+
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
-          sed -i 's/versionCode = 1/versionCode = 15/' hapych-admin/app/build.gradle.kts
-          sed -i 's/versionName = "1.0.0"/versionName = "1.0.15"/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionCode = 1/versionCode = 16/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionName = "1.0.0"/versionName = "1.0.16"/' hapych-admin/app/build.gradle.kts
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -746,14 +839,14 @@ jobs:
           APK="hapych-admin/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
-          cp "$APK" HAPYCH-Admin-v1.0.15-RELAY-COMMANDS-LIVE.apk
-          sha256sum HAPYCH-Admin-v1.0.15-RELAY-COMMANDS-LIVE.apk > HAPYCH-Admin-v1.0.15-RELAY-COMMANDS-LIVE.apk.sha256
+          cp "$APK" HAPYCH-Admin-v1.0.16-TLS-FIX.apk
+          sha256sum HAPYCH-Admin-v1.0.16-TLS-FIX.apk > HAPYCH-Admin-v1.0.16-TLS-FIX.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HAPYCH-Admin-v1.0.15-RELAY-COMMANDS-LIVE
+          name: HAPYCH-Admin-v1.0.16-TLS-FIX
           path: |
-            HAPYCH-Admin-v1.0.15-RELAY-COMMANDS-LIVE.apk
-            HAPYCH-Admin-v1.0.15-RELAY-COMMANDS-LIVE.apk.sha256
+            HAPYCH-Admin-v1.0.16-TLS-FIX.apk
+            HAPYCH-Admin-v1.0.16-TLS-FIX.apk.sha256
           if-no-files-found: error
