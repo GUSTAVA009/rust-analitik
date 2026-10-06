@@ -979,10 +979,521 @@ jobs:
           main.write_text(m)
           PY
 
+          # v1.0.18: player control menu + searchable item giver.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          models = Path("hapych-admin/app/src/main/java/com/hapych/admin/Models.kt")
+          ms = models.read_text()
+          old_player = '''data class RustPlayer(
+              val steamId: String,
+              val name: String,
+              val ping: Int = 0,
+              val address: String = "",
+              val connectedSeconds: Long = 0L
+          )'''
+          new_player = '''data class RustPlayer(
+              val steamId: String,
+              val name: String,
+              val ping: Int = 0,
+              val address: String = "",
+              val connectedSeconds: Long = 0L,
+              val health: Float = 0f,
+              val posX: Double = 0.0,
+              val posY: Double = 0.0,
+              val posZ: Double = 0.0,
+              val isMuted: Boolean = false,
+              val teamId: Long = 0L
+          )'''
+          if old_player not in ms:
+              raise SystemExit("RustPlayer model block not found")
+          ms = ms.replace(old_player, new_player, 1)
+          models.write_text(ms)
+
+          rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
+          s = rcon.read_text()
+          old_parse = '''                      runCatching {
+                          val o = item.asJsonObject
+                          RustPlayer(
+                              steamId = str(o, "SteamID", ""),
+                              name = str(o, "DisplayName", "Unknown"),
+                              ping = int(o, "Ping", 0),
+                              address = str(o, "Address", ""),
+                              connectedSeconds = long(o, "ConnectedSeconds", 0)
+                          )
+                      }.getOrNull()'''
+          new_parse = '''                      runCatching {
+                          val o = item.asJsonObject
+                          val pos = runCatching { o.getAsJsonObject("Position") }.getOrNull()
+                          RustPlayer(
+                              steamId = str(o, "SteamID", ""),
+                              name = str(o, "DisplayName", "Unknown"),
+                              ping = int(o, "Ping", 0),
+                              address = str(o, "Address", ""),
+                              connectedSeconds = long(o, "ConnectedSeconds", 0),
+                              health = float(o, "Health", 0f),
+                              posX = runCatching { pos?.get("x")?.asDouble ?: 0.0 }.getOrDefault(0.0),
+                              posY = runCatching { pos?.get("y")?.asDouble ?: 0.0 }.getOrDefault(0.0),
+                              posZ = runCatching { pos?.get("z")?.asDouble ?: 0.0 }.getOrDefault(0.0),
+                              isMuted = runCatching { o.get("IsMuted")?.asBoolean ?: false }.getOrDefault(false),
+                              teamId = long(o, "TeamID", 0L)
+                          )
+                      }.getOrNull()'''
+          if old_parse not in s:
+              raise SystemExit("v1.0.17 player parser block not found")
+          s = s.replace(old_parse, new_parse, 1)
+          s = s.replace("HAPYCH-Admin/1.0.17", "HAPYCH-Admin/1.0.18")
+          rcon.write_text(s)
+
+          main = Path("hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt")
+          m = main.read_text()
+          a = m.index("@Composable\nprivate fun PlayersScreen(")
+          b = m.index("@Composable\nprivate fun ConsoleScreen(", a)
+
+          players_ui = r'''private data class GiveItemOption(
+              val title: String,
+              val shortName: String,
+              val emoji: String,
+              val category: String
+          )
+
+          private val giveItemCatalog = listOf(
+              GiveItemOption("Дерево", "wood", "🪵", "Ресурсы"),
+              GiveItemOption("Камень", "stones", "🪨", "Ресурсы"),
+              GiveItemOption("Металл", "metal.fragments", "🔩", "Ресурсы"),
+              GiveItemOption("МВК", "metal.refined", "⚙️", "Ресурсы"),
+              GiveItemOption("Скрап", "scrap", "🔧", "Ресурсы"),
+              GiveItemOption("Сера", "sulfur", "🟡", "Ресурсы"),
+              GiveItemOption("Серная руда", "sulfur.ore", "⛏️", "Ресурсы"),
+              GiveItemOption("Металлическая руда", "metal.ore", "⛏️", "Ресурсы"),
+              GiveItemOption("Уголь", "charcoal", "⚫", "Ресурсы"),
+              GiveItemOption("Ткань", "cloth", "🧵", "Ресурсы"),
+              GiveItemOption("Кожа", "leather", "🟤", "Ресурсы"),
+              GiveItemOption("Топливо низкого качества", "lowgradefuel", "⛽", "Ресурсы"),
+
+              GiveItemOption("Штурмовая винтовка AK", "rifle.ak", "🔫", "Оружие"),
+              GiveItemOption("LR-300", "rifle.lr300", "🔫", "Оружие"),
+              GiveItemOption("Полуавтоматическая винтовка", "rifle.semiauto", "🔫", "Оружие"),
+              GiveItemOption("M39", "rifle.m39", "🔫", "Оружие"),
+              GiveItemOption("MP5A4", "smg.mp5", "🔫", "Оружие"),
+              GiveItemOption("Thompson", "smg.thompson", "🔫", "Оружие"),
+              GiveItemOption("Custom SMG", "smg.2", "🔫", "Оружие"),
+              GiveItemOption("M249", "lmg.m249", "🔫", "Оружие"),
+              GiveItemOption("Python", "pistol.python", "🔫", "Оружие"),
+              GiveItemOption("Револьвер", "pistol.revolver", "🔫", "Оружие"),
+              GiveItemOption("Полуавтоматический пистолет", "pistol.semiauto", "🔫", "Оружие"),
+              GiveItemOption("Помповый дробовик", "shotgun.pump", "🔫", "Оружие"),
+              GiveItemOption("Двустволка", "shotgun.double", "🔫", "Оружие"),
+              GiveItemOption("Eoka", "pistol.eoka", "🔫", "Оружие"),
+
+              GiveItemOption("Патроны 5.56", "ammo.rifle", "📦", "Боеприпасы"),
+              GiveItemOption("Разрывные 5.56", "ammo.rifle.explosive", "💥", "Боеприпасы"),
+              GiveItemOption("Скоростные 5.56", "ammo.rifle.hv", "⚡", "Боеприпасы"),
+              GiveItemOption("Пистолетные патроны", "ammo.pistol", "📦", "Боеприпасы"),
+              GiveItemOption("Картечь 12 калибра", "ammo.shotgun", "📦", "Боеприпасы"),
+              GiveItemOption("Самодельный патрон", "ammo.handmade.shell", "📦", "Боеприпасы"),
+              GiveItemOption("Ракета", "ammo.rocket.basic", "🚀", "Боеприпасы"),
+              GiveItemOption("Скоростная ракета", "ammo.rocket.hv", "🚀", "Боеприпасы"),
+              GiveItemOption("Зажигательная ракета", "ammo.rocket.fire", "🔥", "Боеприпасы"),
+
+              GiveItemOption("Медицинский шприц", "syringe.medical", "💉", "Медицина"),
+              GiveItemOption("Большая аптечка", "largemedkit", "🩹", "Медицина"),
+              GiveItemOption("Бинт", "bandage", "🩹", "Медицина"),
+              GiveItemOption("Антирадиационные таблетки", "antiradpills", "💊", "Медицина"),
+
+              GiveItemOption("Металлическая маска", "metal.facemask", "🪖", "Броня"),
+              GiveItemOption("Металлический нагрудник", "metal.plate.torso", "🦺", "Броня"),
+              GiveItemOption("Куртка из дорожных знаков", "roadsign.jacket", "🦺", "Броня"),
+              GiveItemOption("Килт из дорожных знаков", "roadsign.kilt", "🦺", "Броня"),
+              GiveItemOption("Худи", "hoodie", "👕", "Одежда"),
+              GiveItemOption("Штаны", "pants", "👖", "Одежда"),
+              GiveItemOption("Ботинки", "shoes.boots", "🥾", "Одежда"),
+              GiveItemOption("Тактические перчатки", "tactical.gloves", "🧤", "Одежда"),
+
+              GiveItemOption("Отбойный молоток", "jackhammer", "🛠️", "Инструменты"),
+              GiveItemOption("Бензопила", "chainsaw", "🪚", "Инструменты"),
+              GiveItemOption("Кирка", "pickaxe", "⛏️", "Инструменты"),
+              GiveItemOption("Топор", "hatchet", "🪓", "Инструменты"),
+              GiveItemOption("План постройки", "building.planner", "📐", "Строительство"),
+              GiveItemOption("Молоток", "hammer", "🔨", "Строительство"),
+              GiveItemOption("Шкаф", "cupboard.tool", "🗄️", "Строительство"),
+              GiveItemOption("Кодовый замок", "lock.code", "🔐", "Строительство"),
+              GiveItemOption("Бронированная дверь", "door.hinged.toptier", "🚪", "Строительство"),
+
+              GiveItemOption("C4", "explosive.timed", "💣", "Взрывчатка"),
+              GiveItemOption("Сачель", "explosive.satchel", "💣", "Взрывчатка"),
+              GiveItemOption("F1 граната", "grenade.f1", "💣", "Взрывчатка"),
+              GiveItemOption("Ракетница", "rocket.launcher", "🚀", "Взрывчатка"),
+              GiveItemOption("Сигнальная граната", "supply.signal", "🟢", "Прочее")
+          )
+
+          @Composable
+          private fun PlayersScreen(players: List<RustPlayer>, onRefresh: () -> Unit, onCommand: (String) -> Unit) {
+              var query by remember { mutableStateOf("") }
+              var selectedPlayer by remember { mutableStateOf<RustPlayer?>(null) }
+              var givePlayer by remember { mutableStateOf<RustPlayer?>(null) }
+              var pendingAction by remember { mutableStateOf<Pair<RustPlayer, String>?>(null) }
+
+              BackHandler(enabled = selectedPlayer != null || givePlayer != null) {
+                  if (givePlayer != null) givePlayer = null else selectedPlayer = null
+              }
+
+              givePlayer?.let { player ->
+                  PlayerGiveItemScreen(
+                      player = player,
+                      onBack = { givePlayer = null },
+                      onGive = { shortName, amount ->
+                          onCommand("inventory.giveto ${player.steamId} $shortName $amount")
+                          givePlayer = null
+                      }
+                  )
+                  return
+              }
+
+              selectedPlayer?.let { player ->
+                  PlayerDetailScreen(
+                      player = player,
+                      onBack = { selectedPlayer = null },
+                      onGiveItem = { givePlayer = player },
+                      onKick = { pendingAction = player to "kick" },
+                      onBan = { pendingAction = player to "ban" }
+                  )
+              } ?: run {
+                  val filtered = remember(players, query) {
+                      if (query.isBlank()) players
+                      else players.filter { it.name.contains(query, true) || it.steamId.contains(query) }
+                  }
+
+                  Column(Modifier.fillMaxSize()) {
+                      ScreenHeader("Игроки", "${players.size} подключено") {
+                          IconButton(onClick = onRefresh) { Icon(Icons.Rounded.Refresh, null, tint = Orange) }
+                      }
+                      OutlinedTextField(
+                          value = query,
+                          onValueChange = { query = it },
+                          modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                          placeholder = { Text("Ник или SteamID", color = TextSecondary) },
+                          leadingIcon = { Icon(Icons.Rounded.Search, null, tint = TextSecondary) },
+                          singleLine = true,
+                          shape = RoundedCornerShape(16.dp),
+                          colors = hapychTextFieldColors()
+                      )
+                      Spacer(Modifier.height(10.dp))
+                      LazyColumn(
+                          contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp),
+                          verticalArrangement = Arrangement.spacedBy(9.dp)
+                      ) {
+                          items(filtered, key = { it.steamId }) { player ->
+                              PlayerCard(player, onClick = { selectedPlayer = player })
+                          }
+                          if (filtered.isEmpty()) {
+                              item { EmptyState("👥", "Игроки не найдены", "Обнови список или измени запрос") }
+                          }
+                      }
+                  }
+              }
+
+              pendingAction?.let { (player, action) ->
+                  val ban = action == "ban"
+                  AlertDialog(
+                      onDismissRequest = { pendingAction = null },
+                      containerColor = Panel2,
+                      title = { Text(if (ban) "Забанить игрока?" else "Кикнуть игрока?", color = TextPrimary) },
+                      text = { Text("${player.name}\n${player.steamId}", color = TextSecondary) },
+                      confirmButton = {
+                          Button(
+                              onClick = {
+                                  if (ban) onCommand("banid ${player.steamId} \"Banned from HAPYCH Admin\"")
+                                  else onCommand("kick ${player.steamId} \"Kicked from HAPYCH Admin\"")
+                                  pendingAction = null
+                                  selectedPlayer = null
+                              },
+                              colors = ButtonDefaults.buttonColors(containerColor = if (ban) Red else Orange, contentColor = Color.Black)
+                          ) { Text(if (ban) "BAN" else "KICK", fontWeight = FontWeight.Black) }
+                      },
+                      dismissButton = { TextButton(onClick = { pendingAction = null }) { Text("Отмена", color = TextSecondary) } }
+                  )
+              }
+          }
+
+          @Composable
+          private fun PlayerCard(player: RustPlayer, onClick: () -> Unit) {
+              Card(
+                  modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+                  shape = RoundedCornerShape(18.dp),
+                  colors = CardDefaults.cardColors(containerColor = Panel),
+                  border = androidx.compose.foundation.BorderStroke(1.dp, StrokeColor)
+              ) {
+                  Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                      Box(
+                          modifier = Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(Orange.copy(alpha = .12f)),
+                          contentAlignment = Alignment.Center
+                      ) { Icon(Icons.Rounded.Person, null, tint = Orange) }
+                      Spacer(Modifier.width(12.dp))
+                      Column(Modifier.weight(1f)) {
+                          Text(player.name, color = TextPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                          Text(player.steamId, color = TextSecondary, fontSize = 10.sp)
+                          Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                              Text("${player.ping} ms", color = if (player.ping < 90) Green else Gold, fontSize = 10.sp)
+                              Text(formatPlayerTime(player.connectedSeconds), color = TextSecondary, fontSize = 10.sp)
+                              if (player.health > 0f) Text("${player.health.roundToInt()} HP", color = Green, fontSize = 10.sp)
+                          }
+                      }
+                      Text("›", color = Orange, fontSize = 28.sp, fontWeight = FontWeight.Light)
+                  }
+              }
+          }
+
+          @Composable
+          private fun PlayerDetailScreen(
+              player: RustPlayer,
+              onBack: () -> Unit,
+              onGiveItem: () -> Unit,
+              onKick: () -> Unit,
+              onBan: () -> Unit
+          ) {
+              Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                  Row(
+                      modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                          Text("‹ Назад", color = Orange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                      }
+                      Spacer(Modifier.weight(1f))
+                      Text("ИГРОК", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                  }
+
+                  Card(
+                      modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                      shape = RoundedCornerShape(22.dp),
+                      colors = CardDefaults.cardColors(containerColor = Panel2),
+                      border = androidx.compose.foundation.BorderStroke(1.dp, Orange.copy(alpha = .22f))
+                  ) {
+                      Column(Modifier.padding(18.dp)) {
+                          Row(verticalAlignment = Alignment.CenterVertically) {
+                              Box(
+                                  modifier = Modifier.size(58.dp).clip(RoundedCornerShape(17.dp)).background(Orange.copy(alpha = .14f)),
+                                  contentAlignment = Alignment.Center
+                              ) { Icon(Icons.Rounded.Person, null, tint = Orange, modifier = Modifier.size(30.dp)) }
+                              Spacer(Modifier.width(14.dp))
+                              Column {
+                                  Text(player.name, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                                  Text(player.steamId, color = TextSecondary, fontSize = 11.sp)
+                              }
+                          }
+                          Spacer(Modifier.height(18.dp))
+                          PlayerInfoRow("Ping", "${player.ping} ms")
+                          PlayerInfoRow("Онлайн", formatPlayerTime(player.connectedSeconds))
+                          PlayerInfoRow("Здоровье", "${player.health.roundToInt()} HP")
+                          if (player.teamId > 0) PlayerInfoRow("TeamID", player.teamId.toString())
+                          if (player.address.isNotBlank()) PlayerInfoRow("Адрес", player.address)
+                          PlayerInfoRow(
+                              "Позиция",
+                              "${String.format("%.1f", player.posX)}, ${String.format("%.1f", player.posY)}, ${String.format("%.1f", player.posZ)}"
+                          )
+                      }
+                  }
+
+                  Text(
+                      "УПРАВЛЕНИЕ",
+                      modifier = Modifier.padding(start = 18.dp, top = 22.dp, bottom = 10.dp),
+                      color = TextSecondary,
+                      fontSize = 11.sp,
+                      fontWeight = FontWeight.Bold,
+                      letterSpacing = 1.7.sp
+                  )
+
+                  PlayerActionButton("🎁", "Выдать предмет", "Список предметов, поиск и количество", Orange, onGiveItem)
+                  PlayerActionButton("🚪", "Кикнуть", "Отключить игрока от сервера", Gold, onKick)
+                  PlayerActionButton("⛔", "Забанить", "Добавить SteamID в бан-лист", Red, onBan)
+
+                  Spacer(Modifier.height(30.dp))
+              }
+          }
+
+          @Composable
+          private fun PlayerInfoRow(label: String, value: String) {
+              Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                  Text(label, color = TextSecondary, fontSize = 11.sp)
+                  Spacer(Modifier.weight(1f))
+                  Text(value, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+              }
+          }
+
+          @Composable
+          private fun PlayerActionButton(
+              emoji: String,
+              title: String,
+              subtitle: String,
+              tint: Color,
+              onClick: () -> Unit
+          ) {
+              Card(
+                  modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 5.dp).clickable(onClick = onClick),
+                  shape = RoundedCornerShape(18.dp),
+                  colors = CardDefaults.cardColors(containerColor = Panel),
+                  border = androidx.compose.foundation.BorderStroke(1.dp, tint.copy(alpha = .22f))
+              ) {
+                  Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                      Text(emoji, fontSize = 24.sp)
+                      Spacer(Modifier.width(12.dp))
+                      Column(Modifier.weight(1f)) {
+                          Text(title, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                          Text(subtitle, color = TextSecondary, fontSize = 10.sp)
+                      }
+                      Text("›", color = tint, fontSize = 24.sp)
+                  }
+              }
+          }
+
+          @Composable
+          private fun PlayerGiveItemScreen(
+              player: RustPlayer,
+              onBack: () -> Unit,
+              onGive: (String, Int) -> Unit
+          ) {
+              var itemQuery by remember { mutableStateOf("") }
+              var selectedItem by remember { mutableStateOf<GiveItemOption?>(null) }
+              var amountText by remember { mutableStateOf("1") }
+
+              BackHandler {
+                  if (selectedItem != null) selectedItem = null else onBack()
+              }
+
+              Column(Modifier.fillMaxSize()) {
+                  Row(
+                      modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      TextButton(
+                          onClick = { if (selectedItem != null) selectedItem = null else onBack() },
+                          contentPadding = PaddingValues(horizontal = 0.dp)
+                      ) {
+                          Text("‹ Назад", color = Orange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                      }
+                      Spacer(Modifier.weight(1f))
+                      Text("🎁 ${player.name}", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                  }
+
+                  selectedItem?.let { item ->
+                      Card(
+                          modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                          shape = RoundedCornerShape(22.dp),
+                          colors = CardDefaults.cardColors(containerColor = Panel2),
+                          border = androidx.compose.foundation.BorderStroke(1.dp, Orange.copy(alpha = .28f))
+                      ) {
+                          Column(Modifier.padding(18.dp)) {
+                              Text(item.emoji, fontSize = 40.sp)
+                              Spacer(Modifier.height(10.dp))
+                              Text(item.title, color = TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                              Text(item.shortName, color = Orange, fontSize = 12.sp)
+                              Text(item.category, color = TextSecondary, fontSize = 10.sp)
+                              Spacer(Modifier.height(18.dp))
+                              Text("Количество", color = TextSecondary, fontSize = 11.sp)
+                              OutlinedTextField(
+                                  value = amountText,
+                                  onValueChange = { amountText = it.filter(Char::isDigit).take(7) },
+                                  modifier = Modifier.fillMaxWidth(),
+                                  singleLine = true,
+                                  keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                  shape = RoundedCornerShape(16.dp),
+                                  colors = hapychTextFieldColors()
+                              )
+                              Spacer(Modifier.height(14.dp))
+                              Button(
+                                  onClick = {
+                                      val amount = (amountText.toIntOrNull() ?: 1).coerceIn(1, 1_000_000)
+                                      onGive(item.shortName, amount)
+                                  },
+                                  modifier = Modifier.fillMaxWidth().height(54.dp),
+                                  shape = RoundedCornerShape(16.dp),
+                                  colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Color.Black)
+                              ) {
+                                  Text("ВЫДАТЬ ПРЕДМЕТ", fontWeight = FontWeight.Black)
+                              }
+                          }
+                      }
+                      return@Column
+                  }
+
+                  OutlinedTextField(
+                      value = itemQuery,
+                      onValueChange = { itemQuery = it },
+                      modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                      placeholder = { Text("Название или shortname", color = TextSecondary) },
+                      leadingIcon = { Icon(Icons.Rounded.Search, null, tint = TextSecondary) },
+                      singleLine = true,
+                      shape = RoundedCornerShape(16.dp),
+                      colors = hapychTextFieldColors()
+                  )
+
+                  val filtered = remember(itemQuery) {
+                      if (itemQuery.isBlank()) giveItemCatalog
+                      else giveItemCatalog.filter {
+                          it.title.contains(itemQuery, true) ||
+                              it.shortName.contains(itemQuery, true) ||
+                              it.category.contains(itemQuery, true)
+                      }
+                  }
+
+                  LazyColumn(
+                      modifier = Modifier.weight(1f),
+                      contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+                      verticalArrangement = Arrangement.spacedBy(8.dp)
+                  ) {
+                      if (itemQuery.isNotBlank() && filtered.none { it.shortName.equals(itemQuery.trim(), true) }) {
+                          item {
+                              Card(
+                                  modifier = Modifier.fillMaxWidth().clickable {
+                                      val raw = itemQuery.trim()
+                                      selectedItem = GiveItemOption(raw, raw, "📦", "SHORTNAME")
+                                  },
+                                  shape = RoundedCornerShape(16.dp),
+                                  colors = CardDefaults.cardColors(containerColor = Orange.copy(alpha = .09f)),
+                                  border = androidx.compose.foundation.BorderStroke(1.dp, Orange.copy(alpha = .30f))
+                              ) {
+                                  Column(Modifier.padding(14.dp)) {
+                                      Text("Использовать shortname", color = Orange, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                      Text(itemQuery.trim(), color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                      Text("Поддерживает любой предмет Rust, если shortname указан верно", color = TextSecondary, fontSize = 9.sp)
+                                  }
+                              }
+                          }
+                      }
+
+                      items(filtered, key = { it.shortName }) { item ->
+                          Card(
+                              modifier = Modifier.fillMaxWidth().clickable { selectedItem = item },
+                              shape = RoundedCornerShape(16.dp),
+                              colors = CardDefaults.cardColors(containerColor = Panel),
+                              border = androidx.compose.foundation.BorderStroke(1.dp, StrokeColor)
+                          ) {
+                              Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                                  Text(item.emoji, fontSize = 24.sp)
+                                  Spacer(Modifier.width(12.dp))
+                                  Column(Modifier.weight(1f)) {
+                                      Text(item.title, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                      Text(item.shortName, color = TextSecondary, fontSize = 10.sp)
+                                  }
+                                  Text(item.category, color = Orange, fontSize = 9.sp)
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          '''
+          m = m[:a] + players_ui + m[b + len("@Composable\n"):]
+          main.write_text(m)
+          PY
+
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
-          sed -i 's/versionCode = 1/versionCode = 17/' hapych-admin/app/build.gradle.kts
-          sed -i 's/versionName = "1.0.0"/versionName = "1.0.17"/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionCode = 1/versionCode = 18/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionName = "1.0.0"/versionName = "1.0.18"/' hapych-admin/app/build.gradle.kts
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -1015,14 +1526,14 @@ jobs:
           APK="hapych-admin/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
-          cp "$APK" HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk
-          sha256sum HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk > HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk.sha256
+          cp "$APK" HAPYCH-Admin-v1.0.18-PLAYER-CONTROL.apk
+          sha256sum HAPYCH-Admin-v1.0.18-PLAYER-CONTROL.apk > HAPYCH-Admin-v1.0.18-PLAYER-CONTROL.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY
+          name: HAPYCH-Admin-v1.0.18-PLAYER-CONTROL
           path: |
-            HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk
-            HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk.sha256
+            HAPYCH-Admin-v1.0.18-PLAYER-CONTROL.apk
+            HAPYCH-Admin-v1.0.18-PLAYER-CONTROL.apk.sha256
           if-no-files-found: error
