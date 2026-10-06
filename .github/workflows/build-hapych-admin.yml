@@ -960,7 +960,7 @@ jobs:
               return false
           }
 
-'''
+          '''
           s = s[:a] + parser + s[b:]
           s = s.replace("HAPYCH-Admin/1.0.16", "HAPYCH-Admin/1.0.17")
           rcon.write_text(s)
