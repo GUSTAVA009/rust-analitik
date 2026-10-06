@@ -1012,36 +1012,29 @@ jobs:
 
           rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
           s = rcon.read_text()
-          old_parse = '''                      runCatching {
-                          val o = item.asJsonObject
-                          RustPlayer(
-                              steamId = str(o, "SteamID", ""),
-                              name = str(o, "DisplayName", "Unknown"),
-                              ping = int(o, "Ping", 0),
-                              address = str(o, "Address", ""),
-                              connectedSeconds = long(o, "ConnectedSeconds", 0)
-                          )
-                      }.getOrNull()'''
-          new_parse = '''                      runCatching {
-                          val o = item.asJsonObject
-                          val pos = runCatching { o.getAsJsonObject("Position") }.getOrNull()
-                          RustPlayer(
-                              steamId = str(o, "SteamID", ""),
-                              name = str(o, "DisplayName", "Unknown"),
-                              ping = int(o, "Ping", 0),
-                              address = str(o, "Address", ""),
-                              connectedSeconds = long(o, "ConnectedSeconds", 0),
-                              health = float(o, "Health", 0f),
-                              posX = runCatching { pos?.get("x")?.asDouble ?: 0.0 }.getOrDefault(0.0),
-                              posY = runCatching { pos?.get("y")?.asDouble ?: 0.0 }.getOrDefault(0.0),
-                              posZ = runCatching { pos?.get("z")?.asDouble ?: 0.0 }.getOrDefault(0.0),
-                              isMuted = runCatching { o.get("IsMuted")?.asBoolean ?: false }.getOrDefault(false),
-                              teamId = long(o, "TeamID", 0L)
-                          )
-                      }.getOrNull()'''
-          if old_parse not in s:
-              raise SystemExit("v1.0.17 player parser block not found")
-          s = s.replace(old_parse, new_parse, 1)
+          map_anchor = s.index("_players.value = arr.mapNotNull")
+          entry_start = s.index("runCatching {", map_anchor)
+          entry_end = s.index("}.getOrNull()", entry_start) + len("}.getOrNull()")
+          indent = s[s.rfind("\n", 0, entry_start) + 1:entry_start]
+          new_parse = '''runCatching {
+              val o = item.asJsonObject
+              val pos = runCatching { o.getAsJsonObject("Position") }.getOrNull()
+              RustPlayer(
+                  steamId = str(o, "SteamID", ""),
+                  name = str(o, "DisplayName", "Unknown"),
+                  ping = int(o, "Ping", 0),
+                  address = str(o, "Address", ""),
+                  connectedSeconds = long(o, "ConnectedSeconds", 0),
+                  health = float(o, "Health", 0f),
+                  posX = runCatching { pos?.get("x")?.asDouble ?: 0.0 }.getOrDefault(0.0),
+                  posY = runCatching { pos?.get("y")?.asDouble ?: 0.0 }.getOrDefault(0.0),
+                  posZ = runCatching { pos?.get("z")?.asDouble ?: 0.0 }.getOrDefault(0.0),
+                  isMuted = runCatching { o.get("IsMuted")?.asBoolean ?: false }.getOrDefault(false),
+                  teamId = long(o, "TeamID", 0L)
+              )
+          }.getOrNull()'''
+          new_parse = "\n".join(indent + line if idx > 0 else line for idx, line in enumerate(new_parse.splitlines()))
+          s = s[:entry_start] + new_parse + s[entry_end:]
           s = s.replace("HAPYCH-Admin/1.0.17", "HAPYCH-Admin/1.0.18")
           rcon.write_text(s)
 
