@@ -805,10 +805,184 @@ jobs:
           main.write_text(m)
           PY
 
+          # v1.0.17: robust live telemetry parser + player list + visible metric values.
+          python3 - <<'PY'
+          from pathlib import Path
+
+          rcon = Path("hapych-admin/app/src/main/java/com/hapych/admin/RconClient.kt")
+          s = rcon.read_text()
+
+          a = s.index("    private fun handleIncoming(raw: String) {")
+          b = s.index("    private fun cleanHost(host: String): String {", a)
+
+          parser = r'''    private fun handleIncoming(raw: String) {
+              val root = runCatching { JsonParser.parseString(raw) }.getOrNull()
+
+              if (root == null) {
+                  if (!parseTelemetry(raw)) append(raw, LineKind.INFO)
+                  return
+              }
+
+              if (!root.isJsonObject) {
+                  val text = if (root.isJsonPrimitive && root.asJsonPrimitive.isString) root.asString else raw
+                  if (!parseTelemetry(text)) append(text, LineKind.INFO)
+                  return
+              }
+
+              val obj = root.asJsonObject
+              val type = runCatching { obj.get("Type")?.asString.orEmpty() }.getOrDefault("")
+              val messageElement = obj.get("Message")
+              val message = when {
+                  messageElement == null || messageElement.isJsonNull -> raw
+                  messageElement.isJsonPrimitive && messageElement.asJsonPrimitive.isString -> messageElement.asString
+                  else -> messageElement.toString()
+              }
+
+              if (type.equals("relay_status", ignoreCase = true)) {
+                  _detectedProtocol.value = "Rust 2026 WebRCON • HAPYCH Relay • WSS"
+                  append("HAPYCH Relay: $message", LineKind.SUCCESS)
+                  if (message.contains("Rust WebRCON connected", ignoreCase = true)) requestRefresh()
+                  return
+              }
+
+              if (type.equals("relay_error", ignoreCase = true)) {
+                  connectionLost("HAPYCH Relay: $message")
+                  return
+              }
+
+              // serverinfo/playerlist are machine telemetry. Parse them into the UI and
+              // never dump the huge JSON payload into the console.
+              if (parseTelemetry(message)) return
+
+              append(message, when {
+                  type.contains("Error", true) || message.contains("error", true) -> LineKind.ERROR
+                  message.contains("warning", true) -> LineKind.WARNING
+                  message.contains("success", true) || message.contains("complete", true) -> LineKind.SUCCESS
+                  else -> LineKind.INFO
+              })
+          }
+
+          private fun unwrapTelemetryPayload(raw: String): String {
+              var text = raw.trim()
+              repeat(4) {
+                  val element = runCatching { JsonParser.parseString(text) }.getOrNull() ?: return text
+                  when {
+                      element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
+                          val next = element.asString.trim()
+                          if (next == text) return text
+                          text = next
+                      }
+                      element.isJsonObject && element.asJsonObject.has("Message") -> {
+                          val value = element.asJsonObject.get("Message")
+                          val next = when {
+                              value == null || value.isJsonNull -> return text
+                              value.isJsonPrimitive && value.asJsonPrimitive.isString -> value.asString.trim()
+                              else -> value.toString().trim()
+                          }
+                          if (next == text) return text
+                          text = next
+                      }
+                      else -> return text
+                  }
+              }
+              return text
+          }
+
+          private fun parseTelemetry(raw: String): Boolean {
+              val text = unwrapTelemetryPayload(raw)
+              var element = runCatching { JsonParser.parseString(text) }.getOrNull()
+
+              // Be tolerant of wrappers/log prefixes if a host prepends text around JSON.
+              if (element == null) {
+                  val arrayStart = text.indexOf('[')
+                  val arrayEnd = text.lastIndexOf(']')
+                  if (arrayStart >= 0 && arrayEnd > arrayStart) {
+                      element = runCatching { JsonParser.parseString(text.substring(arrayStart, arrayEnd + 1)) }.getOrNull()
+                  }
+              }
+              if (element == null) {
+                  val objectStart = text.indexOf('{')
+                  val objectEnd = text.lastIndexOf('}')
+                  if (objectStart >= 0 && objectEnd > objectStart) {
+                      element = runCatching { JsonParser.parseString(text.substring(objectStart, objectEnd + 1)) }.getOrNull()
+                  }
+              }
+              element ?: return false
+
+              if (element.isJsonObject) {
+                  val o = element.asJsonObject
+                  val isServerInfo = o.has("Hostname") || (o.has("Players") && o.has("MaxPlayers"))
+                  if (!isServerInfo) return false
+
+                  _stats.value = ServerStats(
+                      hostname = str(o, "Hostname", _stats.value.hostname),
+                      players = int(o, "Players", _stats.value.players),
+                      maxPlayers = int(o, "MaxPlayers", _stats.value.maxPlayers),
+                      queued = int(o, "Queued", 0),
+                      joining = int(o, "Joining", 0),
+                      fps = float(o, "Framerate", float(o, "FPS", _stats.value.fps)),
+                      memoryMb = long(o, "Memory", long(o, "MemoryMB", _stats.value.memoryMb)),
+                      entities = int(o, "EntityCount", int(o, "Entities", _stats.value.entities)),
+                      uptimeSeconds = long(o, "Uptime", _stats.value.uptimeSeconds),
+                      map = str(o, "Map", _stats.value.map),
+                      gameTime = str(o, "GameTime", _stats.value.gameTime)
+                  )
+                  return true
+              }
+
+              if (element.isJsonArray) {
+                  val arr = element.asJsonArray
+                  if (arr.size() == 0) {
+                      _players.value = emptyList()
+                      return true
+                  }
+
+                  val hasPlayers = arr.any { item ->
+                      item.isJsonObject && (item.asJsonObject.has("SteamID") || item.asJsonObject.has("DisplayName"))
+                  }
+                  if (!hasPlayers) return false
+
+                  _players.value = arr.mapNotNull { item ->
+                      runCatching {
+                          val o = item.asJsonObject
+                          RustPlayer(
+                              steamId = str(o, "SteamID", ""),
+                              name = str(o, "DisplayName", "Unknown"),
+                              ping = int(o, "Ping", 0),
+                              address = str(o, "Address", ""),
+                              connectedSeconds = long(o, "ConnectedSeconds", 0)
+                          )
+                      }.getOrNull()
+                  }
+                  return true
+              }
+
+              return false
+          }
+
+'''
+          s = s[:a] + parser + s[b:]
+          s = s.replace("HAPYCH-Admin/1.0.16", "HAPYCH-Admin/1.0.17")
+          rcon.write_text(s)
+
+          main = Path("hapych-admin/app/src/main/java/com/hapych/admin/MainActivity.kt")
+          m = main.read_text()
+
+          hero_a = m.index("private fun HeroServerCard(")
+          hero_b = m.index("@Composable", hero_a + 20)
+          hero = m[hero_a:hero_b]
+          hero = hero.replace(".height(280.dp)", ".height(318.dp)", 1)
+          hero = hero.replace('Spacer(Modifier.height(14.dp))\n                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {',
+                              'Spacer(Modifier.height(10.dp))\n                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {', 1)
+          m = m[:hero_a] + hero + m[hero_b:]
+
+          main.write_text(m)
+          PY
+
           sed -i 's/applicationId = "com.hapych.admin"/applicationId = "ru.hapychrust.admin"/' hapych-admin/app/build.gradle.kts
           sed -i 's/android:name=".MainActivity"/android:name="com.hapych.admin.MainActivity"/' hapych-admin/app/src/main/AndroidManifest.xml
-          sed -i 's/versionCode = 1/versionCode = 16/' hapych-admin/app/build.gradle.kts
-          sed -i 's/versionName = "1.0.0"/versionName = "1.0.16"/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionCode = 1/versionCode = 17/' hapych-admin/app/build.gradle.kts
+          sed -i 's/versionName = "1.0.0"/versionName = "1.0.17"/' hapych-admin/app/build.gradle.kts
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -841,14 +1015,14 @@ jobs:
           APK="hapych-admin/app/build/outputs/apk/debug/app-debug.apk"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -20
-          cp "$APK" HAPYCH-Admin-v1.0.16-TLS-FIX.apk
-          sha256sum HAPYCH-Admin-v1.0.16-TLS-FIX.apk > HAPYCH-Admin-v1.0.16-TLS-FIX.apk.sha256
+          cp "$APK" HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk
+          sha256sum HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk > HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk.sha256
 
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HAPYCH-Admin-v1.0.16-TLS-FIX
+          name: HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY
           path: |
-            HAPYCH-Admin-v1.0.16-TLS-FIX.apk
-            HAPYCH-Admin-v1.0.16-TLS-FIX.apk.sha256
+            HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk
+            HAPYCH-Admin-v1.0.17-PLAYERS-TELEMETRY.apk.sha256
           if-no-files-found: error
