@@ -125,14 +125,22 @@ function policy() {
 }
 
 function betaBanner() {
-  return '<aside id="hapych-mobile-gateway-status" role="status" style="' +
-    'position:relative;z-index:2147483647;padding:12px 15px;' +
-    'background:#38260f;color:#fff3e1;border-bottom:2px solid #ff982d;' +
-    'font:700 13px/1.5 system-ui, sans-serif;text-align:center">' +
+  return '<aside id="hapych-mobile-gateway-status" role="status" class="hapych-mobile-banner">' +
     'HAPYCH — мобильный вход (тест). Авторизация и просмотр подписки доступны. ' +
     'Оплата и изменение аккаунта временно отключены.' +
     '</aside>';
 }
+
+const BANNER_STYLE = [
+  '.hapych-mobile-banner {',
+  'position:relative!important; z-index:2147483647!important;',
+  'box-sizing:border-box; padding:12px 15px;',
+  'background:#38260f!important; color:#fff3e1!important;',
+  'border-bottom:2px solid #ff982d!important;',
+  'font:700 13px/1.5 system-ui,sans-serif!important;',
+  'text-align:center;',
+  '}'
+].join('\n');
 
 async function fetchOrigin(req, res, target, body) {
   const controller = new AbortController();
@@ -213,6 +221,7 @@ async function fetchOrigin(req, res, target, body) {
         sendText(res, 502, 'Источник вернул неполную страницу.');
         return;
       }
+      html = html.replace(/<\/head>/i, '<link rel="stylesheet" href="/__gateway/banner.css"></head>');
       html = html.replace(/<body([^>]*)>/i, (_, attrs) => '<body' + attrs + '>' + betaBanner());
       html = html.replaceAll(UPSTREAM, PUBLIC_BASE);
       payload = Buffer.from(html, 'utf8');
@@ -250,6 +259,18 @@ const server = http.createServer(async (req, res) => {
 
   if (req.headers.host !== PUBLIC_HOST) {
     sendText(res, 421, 'Некорректный адрес шлюза.');
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/__gateway/banner.css') {
+    const buffer = Buffer.from(BANNER_STYLE, 'utf8');
+    res.writeHead(200, {
+      'Content-Type': 'text/css; charset=utf-8',
+      'Content-Length': String(buffer.length),
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, no-store'
+    });
+    res.end(buffer);
     return;
   }
 
