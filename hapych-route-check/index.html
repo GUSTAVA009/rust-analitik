@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#121419"><meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' https://ya.ru https://storage.yandexcloud.net https://website.yandexcloud.net https://apigw.yandexcloud.net https://functions.yandexcloud.net https://hapychrust.ru https://my.hapychrust.ru https://cdn.gamestores.app; base-uri 'none'; form-action 'none'">
+<title>HAPYCH — диагностика мобильного доступа</title>
+<style>
+:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#f5f5f5;background:#101216;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse 80% 35% at top,#66371166,transparent),#101216}main{max-width:760px;padding:30px 16px 70px;margin:auto}
+.brand{color:#ffb265;font-weight:900;letter-spacing:.22em;font-size:13px}h1{font-size:clamp(26px,6vw,40px);line-height:1.13;letter-spacing:-.02em;margin:15px 0}h2{font-size:19px;margin:0 0 12px}p{color:#c3c7d0;line-height:1.6}
+.card{border:1px solid #333840;background:#191c22;padding:18px;margin:14px 0;border-radius:18px}
+.instructions{padding-left:22px;color:#d0d3db;line-height:1.6}.instructions li{margin:7px 0}
+.controls{display:flex;gap:9px;flex-wrap:wrap;margin:20px 0 7px}
+button{background:#ffa34c;color:#201206;border:0;border-radius:11px;font-weight:800;padding:13px 17px;min-height:46px;font:inherit;cursor:pointer}
+button.secondary{background:#303640;color:#fff}button:disabled{opacity:.5}
+.route{padding:14px 0;display:flex;justify-content:space-between;gap:9px;border-bottom:1px solid #333840}.route:last-child{border:0}
+.name{font-weight:750;font-size:15px}.url{overflow-wrap:anywhere;font-size:12px;color:#9ba5b3;line-height:1.5;margin-top:4px}
+.note{font-size:12px;color:#9ba5b3;margin-top:4px}.route a{color:#ffbd7d;font-size:13px;text-decoration:none;display:inline-block;margin-top:7px;border-bottom:1px dotted}
+.badge{font-weight:800;white-space:nowrap;border-radius:30px;padding:5px 8px;background:#303640;border:1px solid #4c5564;font-size:11px;align-self:start}
+.badge.ok{color:#b4ffde;background:#143629;border-color:#28634f}.badge.bad{color:#ffc4c4;background:#401e23;border-color:#743e46}.badge.wait{color:#ffe0a2;background:#3f321b}
+.notice{background:#272319;border:1px solid #796038;border-radius:11px;padding:12px;font-size:13px;line-height:1.5;color:#f5daa9}
+.footer{font-size:12px;color:#9da6b5}#status{font-size:13px;color:#cdd1d8;min-height:23px;padding-top:8px}
+@media(max-width:390px){.card{padding:13px}.badge{white-space:normal;text-align:center;max-width:90px;font-size:10px}.route{gap:5px}}
+</style>
+</head>
+<body><main>
+<div class="brand">HAPYCH · NETWORK CHECK</div>
+<h1>Тест доступности с мобильной сети</h1>
+<p>Независимая проверка HTTPS-маршрутов Яндекс Cloud и HAPYCH. Без авторизации, паролей и клиентских ключей.</p>
+<section class="card"><h2>Как проверять</h2>
+<ol class="instructions"><li>На телефоне выключи Wi-Fi и защищённое соединение. Оставь мобильный интернет «Мотив».</li>
+<li>Проверь один раз в обычном режиме, затем повтори <b>во время подтверждённых ограничений</b>.</li>
+<li>Запусти тест и скопируй результат в наш чат. Ничего автоматически не отправляется.</li></ol>
+<div class="controls"><button id="run">Запустить проверку</button><button id="copy" class="secondary" disabled>Скопировать отчёт</button></div>
+<div id="status" role="status" aria-live="polite">Ожидание запуска.</div></section>
+<section class="card"><h2>Маршруты</h2>
+<div class="notice">«Ответ HTTPS» означает наличие сетевого ответа, а не работу сервиса и не разрешение в «белом списке». Корневые адреса API Gateway и Website Hosting могут возвращать HTTP 404 и 400 — это ожидаемо.</div>
+<div id="routes"></div></section>
+<section class="card"><h2>Что означают результаты</h2>
+<p>Если адреса Яндекс Cloud отвечают, а HAPYCH нет, у нас появляется основание проверить настоящий сайт и API на Яндекс Cloud. Но пока бакет и API-шлюз не созданы, это только <b>предварительная проверка маршрута</b>.</p>
+<p>Нажми «Открыть вручную», если автоматический тест показывает ошибку. Браузер не всегда способен отличить сетевую блокировку от других ошибок и не показывает HTTP-код запросов между доменами.</p>
+</section><div class="footer">HAPYCH — диагностическая страница. Без отправки отчётов и без внешних библиотек. 21.10.2026</div>
+</main>
+<script>
+(function(){
+'use strict';
+var targets=[
+{name:'Яндекс (контроль)',url:'https://ya.ru/',note:'Проверка доступности разрешённого ресурса'},
+{name:'Yandex Object Storage',url:'https://storage.yandexcloud.net/',note:'Проверка HTTPS хранилища'},
+{name:'Yandex Website Hosting',url:'https://website.yandexcloud.net/',note:'Корень может ответить HTTP 400'},
+{name:'Yandex API Gateway',url:'https://apigw.yandexcloud.net/',note:'Корень может ответить HTTP 404; это не проверка готового шлюза'},
+{name:'Yandex Cloud Functions',url:'https://functions.yandexcloud.net/',note:'Корень может ответить HTTP 204'},
+{name:'HAPYCH — основной сайт',url:'https://hapychrust.ru/',note:'Наш работающий магазин'},
+{name:'HAPYCH — личный кабинет',url:'https://my.hapychrust.ru/',note:'Главная страница, без входа'},
+{name:'GameStores CDN — оформление HAPYCH',url:'https://cdn.gamestores.app/files/stores/frontend/template_5/932a6f52dbe1/assets/index-61b9ee90f5c9.css',note:'Внешний источник стилей магазина'}
+];
+var root=document.getElementById('routes'),start=document.getElementById('run'),copy=document.getElementById('copy'),status=document.getElementById('status');
+var badges=[],report='';
+targets.forEach(function(t,i){
+ var row=document.createElement('div');row.className='route';
+ var left=document.createElement('div');left.style.minWidth='0';
+ var name=document.createElement('div');name.className='name';name.textContent=t.name;
+ var url=document.createElement('div');url.className='url';url.textContent=t.url;
+ var note=document.createElement('div');note.className='note';note.textContent=t.note;
+ var link=document.createElement('a');link.href=t.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Открыть вручную ↗';
+ left.append(name,url,note,link);
+ var badge=document.createElement('span');badge.className='badge';badge.textContent='Не проверено';badges.push(badge);
+ row.append(left,badge);root.append(row);
+});
+function test(t){var ctrl=new AbortController(),t0=performance.now(),timeout=false;
+ var h=setTimeout(function(){timeout=true;ctrl.abort()},10000);
+ return fetch(t.url,{method:'GET',mode:'no-cors',credentials:'omit',cache:'no-store',redirect:'follow',signal:ctrl.signal})
+ .then(function(){return {name:t.name,url:t.url,ok:true,time:Math.round(performance.now()-t0)};})
+ .catch(function(){return {name:t.name,url:t.url,ok:false,time:Math.round(performance.now()-t0),error:timeout?'таймаут':'сеть/браузер'};})
+ .finally(function(){clearTimeout(h);});
+}
+start.onclick=async function(){
+ start.disabled=true;copy.disabled=true;status.textContent='Проверяю маршруты…';
+ badges.forEach(function(b){b.className='badge wait';b.textContent='Проверка…';});
+ var found=await Promise.all(targets.map(async function(t,i){var v=await test(t);badges[i].className='badge '+(v.ok?'ok':'bad');badges[i].textContent=v.ok?'Ответ HTTPS':'Нет ответа';return v;}));
+ var good=found.filter(function(x){return x.ok;}).length;
+ report=['HAPYCH / Проверка мобильной сети','Дата: '+new Date().toLocaleString('ru-RU'),'Оператор: Мотив (уточнить)','Режим: обычный / во время ограничений (уточнить)','',...found.map(function(v){return (v.ok?'ОТВЕТ':'ОШИБКА')+' | '+v.name+' | '+v.time+' мс | '+v.url+(v.error?' | '+v.error:'');}),'','Примечание: браузерный тест не определяет статус HTTP и не проверяет отдельный API Gateway.'].join('\n');
+ status.textContent='Готово: ответили '+good+' из '+found.length+'. Остальные требуют ручной проверки.';
+ copy.disabled=false;start.disabled=false;
+};
+copy.onclick=async function(){
+ if(!report)return;
+ try{await navigator.clipboard.writeText(report);status.textContent='Отчёт скопирован — вставь его в чат.';}
+ catch(e){var a=document.createElement('textarea');a.value=report;document.body.appendChild(a);a.select();var ok=document.execCommand('copy');a.remove();status.textContent=ok?'Отчёт скопирован.':'Не удалось скопировать — сделай скриншот.';}
+};
+})();
+</script>
+</body></html>
