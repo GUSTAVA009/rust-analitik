@@ -1,0 +1,14 @@
+{
+  "name": "hapych-mobile-access",
+  "version": "0.1.0",
+  "description": "Secure, limited alternative mobile entry for HAPYCH customer portal",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22 <27"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
