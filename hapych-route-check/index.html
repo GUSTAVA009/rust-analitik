@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#121419"><meta name="robots" content="noindex,nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' https://ya.ru https://storage.yandexcloud.net https://website.yandexcloud.net https://apigw.yandexcloud.net https://functions.yandexcloud.net https://hapychrust.ru https://my.hapychrust.ru https://cdn.gamestores.app; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' https://ya.ru https://storage.yandexcloud.net https://website.yandexcloud.net https://apigw.yandexcloud.net https://functions.yandexcloud.net https://hapychrust.ru https://my.hapychrust.ru https://cdn.gamestores.app https://hapych-mobile-access.onrender.com https://hapych-mobile-preview.onrender.com https://hapych-vk-connect.onrender.com; base-uri 'none'; form-action 'none'">
 <title>HAPYCH — диагностика мобильного доступа</title>
 <style>
 :root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#f5f5f5;background:#101216;color-scheme:dark}
@@ -38,9 +38,9 @@ button.secondary{background:#303640;color:#fff}button:disabled{opacity:.5}
 <div class="notice">«Ответ HTTPS» означает наличие сетевого ответа, а не работу сервиса и не разрешение в «белом списке». Корневые адреса API Gateway и Website Hosting могут возвращать HTTP 404 и 400 — это ожидаемо.</div>
 <div id="routes"></div></section>
 <section class="card"><h2>Что означают результаты</h2>
-<p>Если адреса Яндекс Cloud отвечают, а HAPYCH нет, у нас появляется основание проверить настоящий сайт и API на Яндекс Cloud. Но пока бакет и API-шлюз не созданы, это только <b>предварительная проверка маршрута</b>.</p>
+<p>Сравни результаты «Render Static — контроль» и «Render — новый шлюз». Если статический адрес отвечает, а новый — нет, проверяем блокировку имени хоста или особенности HTTP/TLS-маршрута, не меняя IP наугад. Если все адреса Render не отвечают, возможна общая недоступность сети Render. Если адреса Яндекс Cloud отвечают, а HAPYCH нет, у нас появляется основание проверить настоящий сайт и API на Яндекс Cloud. Но пока бакет и API-шлюз не созданы, это только <b>предварительная проверка маршрута</b>.</p>
 <p>Нажми «Открыть вручную», если автоматический тест показывает ошибку. Браузер не всегда способен отличить сетевую блокировку от других ошибок и не показывает HTTP-код запросов между доменами.</p>
-</section><div class="footer">HAPYCH — диагностическая страница. Без отправки отчётов и без внешних библиотек. 21.10.2026</div>
+</section><div class="footer">HAPYCH — диагностическая страница. Без отправки отчётов и без внешних библиотек. Обновлено 22.10.2026</div>
 </main>
 <script>
 (function(){
@@ -53,6 +53,10 @@ var targets=[
 {name:'Yandex Cloud Functions',url:'https://functions.yandexcloud.net/',note:'Корень может ответить HTTP 204'},
 {name:'HAPYCH — основной сайт',url:'https://hapychrust.ru/',note:'Наш работающий магазин'},
 {name:'HAPYCH — личный кабинет',url:'https://my.hapychrust.ru/',note:'Главная страница, без входа'},
+{name:'Render Static — контроль',url:'https://hapych-route-check.onrender.com/',note:'Этот диагностический сайт; проверка статического Render'},
+{name:'Render — старый шлюз',url:'https://hapych-mobile-preview.onrender.com/healthz',note:'Проверка динамического Render, без учётной записи'},
+{name:'Render — новый шлюз',url:'https://hapych-mobile-access.onrender.com/healthz',note:'Проверка нового Render-сервиса; только технический статус, без паролей'},
+{name:'Render — страница входа',url:'https://hapych-mobile-access.onrender.com/login',note:'Проверка открытия страницы входа, не отправляет пароль'},
 {name:'GameStores CDN — оформление HAPYCH',url:'https://cdn.gamestores.app/files/stores/frontend/template_5/932a6f52dbe1/assets/index-61b9ee90f5c9.css',note:'Внешний источник стилей магазина'}
 ];
 var root=document.getElementById('routes'),start=document.getElementById('run'),copy=document.getElementById('copy'),status=document.getElementById('status');
