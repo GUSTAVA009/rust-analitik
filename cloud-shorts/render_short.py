@@ -100,7 +100,7 @@ def main():
  assert any(s["codec_type"]=="video" and s.get("width")==720 and s.get("height")==1280 for s in streams)
  assert any(s["codec_type"]=="audio" for s in streams)
  run(["ffmpeg","-hide_banner","-loglevel","error","-y",
-      "-ss",".8","-i",str(output),"-frames:v","1",str(O/"thumbnail.jpg")],30)
+      "-ss","0.8","-i",str(output),"-frames:v","1",str(O/"thumbnail.jpg")],30)
  summary={
   "title":"Выехал на 5 минут… А тут такое! 😳 #shorts",
   "description":"Когда обещал вернуться через пять минут, но друзья позвали на один «короткий круг»! Какой подъём ты бы рискнул пройти? Пиши в комментариях.\n\nКадры: cottonbro studio / Pexels, адаптированы с русской озвучкой и авторским монтажом.\nhttps://www.pexels.com/video/person-riding-a-motocross-5803637/\nhttps://www.pexels.com/video/people-riding-dirt-bikes-5803517/\n#мото #мотокросс #shorts",
