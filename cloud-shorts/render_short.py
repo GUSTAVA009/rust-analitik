@@ -98,12 +98,12 @@ def main():
       "-filter_complex",(
           "[0:v]"+",".join(filters)+"[v];"
           "[1:a]aresample=48000,highpass=f=90,lowpass=f=9200,volume=1.12,"
-          "adelay=250|250,apad,atrim=duration=%.3f,asetpts=PTS-STARTPTS[voice];"%total+
+          "adelay=250|250,apad,atrim=duration=%.3f,asetpts=PTS-STARTPTS,asplit=2[voice_duck][voice_mix];"%total+
           "[2:a]aresample=48000,volume=0.48,afade=t=in:st=0:d=0.16,"
           "afade=t=out:st=%.3f:d=0.48,atrim=duration=%.3f,asetpts=PTS-STARTPTS[bed];"
           %(max(0,total-0.48),total)+
-          "[bed][voice]sidechaincompress=threshold=0.025:ratio=6:attack=12:release=230[ducked];"
-          "[ducked][voice]amix=inputs=2:duration=first:normalize=0,"
+          "[bed][voice_duck]sidechaincompress=threshold=0.025:ratio=6:attack=12:release=230[ducked];"
+          "[ducked][voice_mix]amix=inputs=2:duration=first:normalize=0,"
           "alimiter=limit=0.93[a]"),
       "-map","[v]","-map","[a]","-c:v","libx264","-preset","medium","-crf","21",
       "-r","30","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-ar","48000",
