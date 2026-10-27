@@ -17,8 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prepare fonts and FFmpeg
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y -o Dpkg::Use-Pty=0 --no-install-recommends ffmpeg
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
       - name: Download licensed footage, voice and render
